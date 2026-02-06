@@ -3,34 +3,35 @@ import React, { useMemo, useState } from 'react';
 const TOPIC_NUMBERS = Array.from({ length: 28 }, (_, i) => i + 1);
 
 // Презентации — явное сопоставление, чтобы учесть разные расширения
+// ВАЖНО: файлы лежат в папке public/word/present, поэтому путь должен быть /word/present/...
 const PRESENTATION_FILES: Record<number, string> = {
-  1: '/present/1.pptx',
-  2: '/present/2.pptx',
-  3: '/present/3.ppt',
-  5: '/present/5.ppt',
-  6: '/present/6.ppt',
-  7: '/present/7.ppt',
-  8: '/present/8.ppt',
-  9: '/present/9.ppt',
-  10: '/present/10.ppt',
-  11: '/present/11.pptx',
-  12: '/present/12.pptx',
-  13: '/present/13.ppt',
-  14: '/present/14.ppt',
-  15: '/present/15.ppt',
-  16: '/present/16.ppt',
-  17: '/present/17.pptx',
-  18: '/present/18.pptx',
-  19: '/present/19.pptx',
-  20: '/present/20.pptx',
-  21: '/present/21.pptx',
-  22: '/present/22.ppsx',
-  23: '/present/23.ppt',
-  24: '/present/24.ppt',
-  25: '/present/25.ppt',
-  26: '/present/26.pptx',
-  27: '/present/27.ppt',
-  28: '/present/28.pptx',
+  1: '/word/present/1.pptx',
+  2: '/word/present/2.pptx',
+  3: '/word/present/3.ppt',
+  5: '/word/present/5.ppt',
+  6: '/word/present/6.ppt',
+  7: '/word/present/7.ppt',
+  8: '/word/present/8.ppt',
+  9: '/word/present/9.ppt',
+  10: '/word/present/10.ppt',
+  11: '/word/present/11.pptx',
+  12: '/word/present/12.pptx',
+  13: '/word/present/13.ppt',
+  14: '/word/present/14.ppt',
+  15: '/word/present/15.ppt',
+  16: '/word/present/16.ppt',
+  17: '/word/present/17.pptx',
+  18: '/word/present/18.pptx',
+  19: '/word/present/19.pptx',
+  20: '/word/present/20.pptx',
+  21: '/word/present/21.pptx',
+  22: '/word/present/22.ppsx',
+  23: '/word/present/23.ppt',
+  24: '/word/present/24.ppt',
+  25: '/word/present/25.ppt',
+  26: '/word/present/26.pptx',
+  27: '/word/present/27.ppt',
+  28: '/word/present/28.pptx',
 };
 
 type ActiveTab = 'word' | 'present';
@@ -187,5 +188,6 @@ const Materials: React.FC = () => {
 };
 
 export default Materials;
+
 
 
