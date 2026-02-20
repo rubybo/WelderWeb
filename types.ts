@@ -4,7 +4,8 @@ export enum ViewState {
   ANALYZER = 'ANALYZER',
   CHAT = 'CHAT',
   SAFETY = 'SAFETY',
-  MATERIALS = 'MATERIALS'
+  MATERIALS = 'MATERIALS',
+  GAME = 'GAME'
 }
 
 export interface WeldingModule {
