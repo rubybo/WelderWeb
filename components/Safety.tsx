@@ -10,7 +10,7 @@ const Safety: React.FC = () => {
           <div className="p-3 bg-red-500/20 rounded-full text-red-500">
             <AlertTriangle size={32} />
           </div>
-          <h2 className="text-3xl font-bold text-red-500">Техника Безопасности</h2>
+          <h2 className="text-3xl font-bold text-red-500">Техника безопасности</h2>
         </div>
         <p className="text-slate-300 text-lg mb-6">
           Сварка — это процесс с повышенной опасностью. Игнорирование правил может привести к потере зрения, ожогам или пожару.
@@ -28,7 +28,7 @@ const Safety: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
          <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700">
-            <h3 className="text-xl font-bold text-orange-400 mb-4">Средства Индивидуальной Защиты (СИЗ)</h3>
+            <h3 className="text-xl font-bold text-orange-400 mb-4">СИЗ</h3>
             <ul className="space-y-3 text-slate-300">
                 <li className="flex items-center gap-2"><span className="w-2 h-2 bg-orange-500 rounded-full"></span>Маска сварщика (Хамелеон)</li>
                 <li className="flex items-center gap-2"><span className="w-2 h-2 bg-orange-500 rounded-full"></span>Краги (Спилковые перчатки)</li>
@@ -38,7 +38,7 @@ const Safety: React.FC = () => {
             </ul>
          </div>
          <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700">
-            <h3 className="text-xl font-bold text-orange-400 mb-4">Подготовка места</h3>
+            <h3 className="text-xl font-bold text-orange-400 mb-4">Подготовка рабочего места</h3>
             <ul className="space-y-3 text-slate-300">
                 <li className="flex items-center gap-2"><span className="w-2 h-2 bg-orange-500 rounded-full"></span>Убрать горючие материалы (5-10м)</li>
                 <li className="flex items-center gap-2"><span className="w-2 h-2 bg-orange-500 rounded-full"></span>Проверить заземление аппарата</li>
