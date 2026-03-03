@@ -300,11 +300,9 @@ const Materials: React.FC = () => {
                         Для этой темы презентация не загружена
                       </span>
                     )}
-                    {hasVideo && (
-                      <span className="px-2 py-0.5 rounded-full bg-sky-500/15 border border-sky-500/60 text-sky-200">
-                        Видео: плейлист YouTube (номер ролика = номер темы)
-                      </span>
-                    )}
+                    {/* {hasVideo && (
+                    
+                    )} */}
                   </div>
                 )}
               </div>
@@ -417,7 +415,7 @@ const Materials: React.FC = () => {
                       key={videoEmbedUrl}
                       src={videoEmbedUrl}
                       className="w-full h-full border-0"
-                      title={`Тема ${selectedTopic} — видеоурок (YouTube)`}
+                      title={`Тема ${selectedTopic}`}
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                       allowFullScreen
                     />
