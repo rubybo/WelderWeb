@@ -29,7 +29,7 @@ export const WELDING_MODULES: WeldingModule[] = [
     difficulty: 'Любитель',
     image: 'https://picsum.photos/id/2/400/300',
     content: `
-### Что такое MIG/MAG?
+### Что такое MIG/MAG
 Metal Inert/Active Gas — сварка плавящимся электродом (проволокой) в среде защитного газа (аргон, углекислота или смесь).
 
 **Ключевые особенности:**
