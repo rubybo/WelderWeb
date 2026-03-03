@@ -18,4 +18,5 @@ export const YOUTUBE_TOPIC_TO_VIDEO_ID: Record<number, string> = {
   14: "T-xJKPxidXY",
   15: "U1sVig_zcSQ",
   16: "xcz_eZpIb6g",
+  17: "1N9A2Xp1dvw",
 };
