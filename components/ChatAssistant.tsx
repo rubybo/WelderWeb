@@ -77,7 +77,7 @@ const ChatAssistant: React.FC = () => {
     <div className="flex flex-col h-[calc(100vh-140px)] md:h-[calc(100vh-100px)] max-w-4xl mx-auto p-4">
       <div className="flex justify-between items-center mb-4 border-b border-slate-700 pb-2">
         <h2 className="text-2xl font-bold text-slate-100 flex items-center gap-2">
-           <Bot className="text-orange-500" /> ИИ Наставник
+           <Bot className="text-orange-500" /> ИИ наставник
         </h2>
         <button 
           onClick={clearChat}

@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { QUIZZES, type Quiz } from '../quizzes';
+import React, { useMemo, useState } from 'react';
+import { YOUTUBE_PLAYLIST_ID, YOUTUBE_TOPIC_TO_VIDEO_ID } from '../youtubeTopicMap';
 
 type TopicMeta = {
   id: number;
@@ -70,22 +70,19 @@ const PRESENTATION_FILES: Record<number, string> = {
   28: '/word/present/28.pptx',
 };
 
-// Видеофайлы: по умолчанию предполагаем, что имя совпадает с номером темы (N.mp4)
-// и лежит в папке public/video welder → в браузере путь будет /video welder/N.mp4
-// Если каких‑то файлов ещё нет, плеер просто не сможет их воспроизвести, но интерфейс останется тем же.
-const buildVideoPath = (topicId: number | null): string | null => {
-  if (!topicId) return null;
-  // Прямой путь с пробелом, браузер сам закодирует его как %20
-  return `/video welder/${topicId}.mp4`;
+// Полностью скрыть имя канала/запретить переход на YouTube нельзя (ограничения YouTube),
+// но можно уменьшить брендинг и рекомендации.
+const buildYouTubeEmbedUrlByVideoId = (videoId: string): string => {
+  const params = new URLSearchParams({
+    modestbranding: '1',
+    rel: '0',
+    iv_load_policy: '3',
+    playsinline: '1',
+  });
+  return `https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}?${params.toString()}`;
 };
 
-// Тестовые материалы: файлы лежат в папке public/Раздел контроля знаний, имена также совпадают с номером темы (N.docx)
-const buildTestPath = (topicId: number | null): string | null => {
-  if (!topicId) return null;
-  return `/Раздел контроля знаний/${topicId}.docx`;
-};
-
-type ActiveTab = 'word' | 'present' | 'video' | 'test';
+type ActiveTab = 'word' | 'present' | 'video';
 
 const buildOfficeEmbedUrl = (relativePath: string | undefined): string | null => {
   if (!relativePath) return null;
@@ -99,12 +96,6 @@ const Materials: React.FC = () => {
   const [selectedTopic, setSelectedTopic] = useState<number | null>(1);
   const [activeTab, setActiveTab] = useState<ActiveTab>('word');
   const [search, setSearch] = useState('');
-  const [quizAnswers, setQuizAnswers] = useState<Record<number, number | null>>({});
-  const [quizSubmitted, setQuizSubmitted] = useState(false);
-  const [quizScore, setQuizScore] = useState<{ correct: number; total: number }>({
-    correct: 0,
-    total: 0,
-  });
 
   const filteredTopics = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -122,11 +113,6 @@ const Materials: React.FC = () => {
     [selectedTopic]
   );
 
-  const currentQuiz: Quiz | null = useMemo(
-    () => (selectedTopic ? QUIZZES[selectedTopic] ?? null : null),
-    [selectedTopic]
-  );
-
   const wordPath = useMemo(() => {
     if (!selectedTopic) return null;
     return `/word/${selectedTopic}.docx`;
@@ -136,78 +122,57 @@ const Materials: React.FC = () => {
     if (!selectedTopic) return undefined;
     return PRESENTATION_FILES[selectedTopic];
   }, [selectedTopic]);
+  const videoId = useMemo(() => {
+    if (!selectedTopic) return null;
+    return YOUTUBE_TOPIC_TO_VIDEO_ID[selectedTopic] ?? null;
+  }, [selectedTopic]);
 
-  const videoPath = useMemo(() => buildVideoPath(selectedTopic), [selectedTopic]);
-  const testPath = useMemo(() => buildTestPath(selectedTopic), [selectedTopic]);
+  const videoEmbedUrl = useMemo(
+    () => (videoId ? buildYouTubeEmbedUrlByVideoId(videoId) : null),
+    [videoId]
+  );
 
   const wordEmbedUrl = useMemo(() => buildOfficeEmbedUrl(wordPath || undefined), [wordPath]);
   const presentationEmbedUrl = useMemo(
     () => buildOfficeEmbedUrl(presentationPath),
     [presentationPath]
   );
-  const testEmbedUrl = useMemo(() => buildOfficeEmbedUrl(testPath || undefined), [testPath]);
 
   const hasPresentation = !!(selectedTopic && PRESENTATION_FILES[selectedTopic]);
-  const hasVideo = !!videoPath;
-  const hasTest = !!testPath;
-
-  // Сброс теста при смене темы или переключении вкладки
-  useEffect(() => {
-    setQuizAnswers({});
-    setQuizSubmitted(false);
-    setQuizScore({ correct: 0, total: 0 });
-  }, [selectedTopic, activeTab]);
-
-  const handleSelectAnswer = (questionId: number, optionIndex: number) => {
-    setQuizAnswers((prev) => ({
-      ...prev,
-      [questionId]: optionIndex,
-    }));
-  };
-
-  const handleSubmitQuiz = () => {
-    if (!currentQuiz) return;
-    let correct = 0;
-    const total = currentQuiz.questions.length;
-
-    currentQuiz.questions.forEach((q) => {
-      if (quizAnswers[q.id] === q.correctIndex) {
-        correct += 1;
-      }
-    });
-
-    setQuizScore({ correct, total });
-    setQuizSubmitted(true);
-  };
-
-  const handleResetQuiz = () => {
-    setQuizAnswers({});
-    setQuizSubmitted(false);
-    setQuizScore({ correct: 0, total: 0 });
-  };
+  const hasVideo = !!videoEmbedUrl;
 
   const handleOpenFileInNewTab = () => {
     if (typeof window === 'undefined') return;
 
     let path: string | null | undefined = null;
 
-    if (activeTab === 'word') path = wordPath;
-    else if (activeTab === 'present') path = presentationPath;
-    else if (activeTab === 'video') path = videoPath;
-    else if (activeTab === 'test') path = testPath;
+    if (activeTab === 'word') {
+      path = wordPath;
+    } else if (activeTab === 'present') {
+      path = presentationPath;
+    } else if (activeTab === 'video') {
+      // Для видео открываем конкретный ролик, если нашли его по номеру темы.
+      path = videoId
+        ? `https://youtu.be/${videoId}`
+        : `https://www.youtube.com/playlist?list=${YOUTUBE_PLAYLIST_ID}`;
+    }
 
     if (!path) return;
 
-    const fileUrl = `${window.location.origin}${path}`;
-    window.open(fileUrl, '_blank', 'noopener,noreferrer');
+    // Для http(s) ссылок открываем как есть, для относительных — добавляем origin.
+    const isHttp = /^https?:\/\//i.test(path);
+    const url = isHttp ? path : `${window.location.origin}${path}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
       <header className="space-y-2">
         <h2 className="text-3xl md:text-4xl font-bold text-slate-100 flex items-center gap-3">
-          
-          <span className="border-l-4 border-orange-500 pl-4">Опорный конспект</span>
+          {/* <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-orange-600/20 text-orange-400 border border-orange-500/40">
+            📚
+          </span> */}
+          <span className="border-l-4 border-orange-500 pl-4">Материалы по темам</span>
         </h2>
         <p className="text-slate-400 ml-[3.75rem] max-w-2xl">
           Выберите тему, чтобы открыть конспект и при наличии презентацию прямо на сайте.
@@ -273,17 +238,17 @@ const Materials: React.FC = () => {
                   >
                     <div className="flex items-start justify-between gap-2 mb-1">
                       <div className="text-xs uppercase tracking-wide text-slate-500">
-                        {/* Тема {n} */}
+                        Тема {n}
                       </div>
-                      {/* {isActive && (
-                        // <span className="text-[10px] px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-300 border border-orange-500/40">
-                        //   выбрано
-                        // </span>
-                      )} */}
+                      {isActive && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-300 border border-orange-500/40">
+                          выбрано
+                        </span>
+                      )}
                     </div>
                     <div className="font-semibold text-sm mb-1">{topic.title}</div>
                     <div className="text-[11px] text-slate-400 mb-1">
-                      Опорный конспект{hasPresent && <span className="text-slate-300"> + презентация</span>}
+                      Конспект Word{hasPresent && <span className="text-slate-300"> + презентация</span>}
                     </div>
                     <div className="flex flex-wrap gap-1.5 text-[10px] text-slate-400">
                       <span className="px-2 py-0.5 rounded-full bg-slate-900/80 border border-slate-700">
@@ -319,7 +284,7 @@ const Materials: React.FC = () => {
                     : 'Выберите тему слева'}
                 </h3>
                 <p className="text-slate-400 text-sm mt-1">
-                  Просмотр Word-конспектов, презентаций, видеоуроков и тестов прямо на сайте.
+                  Просмотр Word-конспектов, презентаций и видеоуроков прямо на сайте.
                 </p>
                 {selectedTopic && (
                   <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
@@ -335,22 +300,9 @@ const Materials: React.FC = () => {
                         Для этой темы презентация не загружена
                       </span>
                     )}
-                    {hasVideo ? (
-                      <span className="px-2 py-0.5 rounded-full bg-sky-500/10 border border-sky-500/50 text-sky-300">
-                        Видео: {selectedTopic}.mp4
-                      </span>
-                    ) : (
-                      <span className="px-2 py-0.5 rounded-full bg-slate-900/80 border border-slate-700 text-slate-500">
-                        Видеофайл можно добавить как {selectedTopic}.mp4 в папку public/video welder
-                      </span>
-                    )}
-                    {hasTest ? (
-                      <span className="px-2 py-0.5 rounded-full bg-violet-500/10 border border-violet-500/50 text-violet-300">
-                        Тест: Раздел контроля знаний/{selectedTopic}.docx
-                      </span>
-                    ) : (
-                      <span className="px-2 py-0.5 rounded-full bg-slate-900/80 border border-slate-700 text-slate-500">
-                        Тест для этой темы можно добавить в папку public/Раздел контроля знаний
+                    {hasVideo && (
+                      <span className="px-2 py-0.5 rounded-full bg-sky-500/15 border border-sky-500/60 text-sky-200">
+                        Видео: плейлист YouTube (номер ролика = номер темы)
                       </span>
                     )}
                   </div>
@@ -367,7 +319,7 @@ const Materials: React.FC = () => {
                     }`}
                     onClick={() => setActiveTab('word')}
                   >
-                    Опорный конспект
+                    Конспект (Word)
                   </button>
                   <button
                     className={`px-3 py-1.5 text-sm rounded-md ${
@@ -389,16 +341,6 @@ const Materials: React.FC = () => {
                   >
                     Видео
                   </button>
-                  <button
-                    className={`px-3 py-1.5 text-sm rounded-md ${
-                      activeTab === 'test'
-                        ? 'bg-orange-600 text-white shadow shadow-orange-500/40'
-                        : 'text-slate-300 hover:text-white hover:bg-slate-700'
-                    }`}
-                    onClick={() => setActiveTab('test')}
-                  >
-                    Тест
-                  </button>
                 </div>
 
                 <button
@@ -407,9 +349,7 @@ const Materials: React.FC = () => {
                   disabled={
                     !selectedTopic ||
                     (activeTab === 'word' && !wordPath) ||
-                    (activeTab === 'present' && !presentationPath) ||
-                    (activeTab === 'video' && !videoPath) ||
-                    (activeTab === 'test' && !testPath)
+                    (activeTab === 'present' && !presentationPath)
                   }
                   className="text-xs md:text-[11px] px-3 py-1.5 rounded-md border border-slate-600 text-slate-300 hover:text-white hover:border-orange-500 hover:bg-orange-500/10 disabled:opacity-40 disabled:cursor-not-allowed transition"
                 >
@@ -472,185 +412,23 @@ const Materials: React.FC = () => {
 
               {selectedTopic && activeTab === 'video' && (
                 <>
-                  {!videoPath && (
-                    <p className="text-slate-500 text-sm p-4 text-center">
-                      Для этой темы видеоролик не найден. Добавьте файл
-                      <span className="text-slate-300"> {selectedTopic}.mp4</span> в папку
-                      <span className="text-slate-300"> public/video welder</span>.
-                    </p>
-                  )}
-                  {videoPath && (
-                    <video
-                      key={videoPath}
-                      controls
-                      className="w-full h-full bg-black"
-                    >
-                      <source src={videoPath} type="video/mp4" />
-                      Ваш браузер не поддерживает воспроизведение видео.
-                    </video>
-                  )}
-                </>
-              )}
-
-              {selectedTopic && activeTab === 'test' && (
-                <>
-                  {currentQuiz ? (
-                    <div className="w-full h-full overflow-y-auto p-4 space-y-4">
-                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-2">
-                        <div>
-                          <h4 className="text-lg font-semibold text-slate-100">
-                            Тест по теме {selectedTopic}: {currentQuiz.title}
-                          </h4>
-                          <p className="text-slate-400 text-xs mt-1">
-                            Выберите варианты ответов, затем нажмите «Проверить результат».
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs">
-                          {quizSubmitted && (
-                            <span className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/50 text-emerald-300">
-                              Результат: {quizScore.correct} из {quizScore.total}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="space-y-4">
-                        {currentQuiz.questions.map((q, idx) => {
-                          const selected = quizAnswers[q.id] ?? null;
-                          const isCorrect = quizSubmitted && selected === q.correctIndex;
-                          const isIncorrect =
-                            quizSubmitted && selected !== null && selected !== q.correctIndex;
-
-                          return (
-                            <div
-                              key={q.id}
-                              className={`rounded-xl border p-3 md:p-4 bg-slate-900/70 ${
-                                isCorrect
-                                  ? 'border-emerald-500/70'
-                                  : isIncorrect
-                                  ? 'border-rose-500/70'
-                                  : 'border-slate-700'
-                              }`}
-                            >
-                              <div className="flex items-start justify-between gap-2 mb-2">
-                                <div className="text-xs uppercase tracking-wide text-slate-500">
-                                  Вопрос {idx + 1}
-                                </div>
-                                {quizSubmitted && (
-                                  <span
-                                    className={`text-[10px] px-2 py-0.5 rounded-full border ${
-                                      isCorrect
-                                        ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-300'
-                                        : isIncorrect
-                                        ? 'bg-rose-500/10 border-rose-500/50 text-rose-300'
-                                        : 'bg-slate-800 border-slate-600 text-slate-300'
-                                    }`}
-                                  >
-                                    {isCorrect
-                                      ? 'верно'
-                                      : isIncorrect
-                                      ? 'неверно'
-                                      : 'ответ не проверен'}
-                                  </span>
-                                )}
-                              </div>
-                              <div className="text-sm font-medium text-slate-100 mb-2">
-                                {q.text}
-                              </div>
-                              <div className="space-y-1.5">
-                                {q.options.map((opt, optIndex) => {
-                                  const isSelected = selected === optIndex;
-                                  const isRightOption = q.correctIndex === optIndex;
-
-                                  let optionClasses =
-                                    'w-full text-left px-3 py-1.5 rounded-md border text-xs md:text-sm transition-colors';
-
-                                  if (!quizSubmitted) {
-                                    optionClasses += isSelected
-                                      ? ' border-orange-500 bg-orange-500/10 text-orange-100'
-                                      : ' border-slate-700 bg-slate-900/80 text-slate-200 hover:border-orange-500/60 hover:bg-slate-800';
-                                  } else {
-                                    if (isRightOption) {
-                                      optionClasses += ' border-emerald-500 bg-emerald-500/10 text-emerald-100';
-                                    } else if (isSelected && !isRightOption) {
-                                      optionClasses += ' border-rose-500 bg-rose-500/10 text-rose-100';
-                                    } else {
-                                      optionClasses += ' border-slate-700 bg-slate-900/80 text-slate-400';
-                                    }
-                                  }
-
-                                  return (
-                                    <button
-                                      key={optIndex}
-                                      type="button"
-                                      className={optionClasses}
-                                      onClick={() => handleSelectAnswer(q.id, optIndex)}
-                                      disabled={quizSubmitted}
-                                    >
-                                      <span className="mr-2 text-[11px] text-slate-400">
-                                        {String.fromCharCode(65 + optIndex)}.
-                                      </span>
-                                      {opt}
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-
-                      <div className="flex flex-wrap items-center gap-3 pt-2">
-                        <button
-                          type="button"
-                          onClick={handleSubmitQuiz}
-                          className="px-4 py-1.5 rounded-md bg-orange-600 text-white text-sm font-medium hover:bg-orange-500 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                          disabled={!currentQuiz.questions.length}
-                        >
-                          Проверить результат
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleResetQuiz}
-                          className="px-3 py-1.5 rounded-md border border-slate-600 text-xs text-slate-300 hover:text-white hover:border-orange-500 hover:bg-orange-500/10 transition"
-                        >
-                          Сбросить ответы
-                        </button>
-                        {testPath && testEmbedUrl && (
-                          <span className="text-[11px] text-slate-500">
-                            Для печати можно открыть исходный файл теста:
-                            <button
-                              type="button"
-                              className="ml-1 text-orange-400 hover:text-orange-300 underline decoration-dotted"
-                              onClick={handleOpenFileInNewTab}
-                            >
-                              Раздел контроля знаний/{selectedTopic}.docx
-                            </button>
-                          </span>
-                        )}
-                      </div>
-                    </div>
+                  {videoEmbedUrl ? (
+                    <iframe
+                      key={videoEmbedUrl}
+                      src={videoEmbedUrl}
+                      className="w-full h-full border-0"
+                      title={`Тема ${selectedTopic} — видеоурок (YouTube)`}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      allowFullScreen
+                    />
                   ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center px-4 text-center space-y-3">
-                      <p className="text-slate-500 text-sm">
-                        Интерактивный тест для этой темы пока не добавлен.
-                      </p>
-                      {testPath && testEmbedUrl ? (
-                        <p className="text-[11px] text-slate-500 max-w-md">
-                          Файл теста существует как Word-документ по пути{' '}
-                          <span className="text-slate-300">
-                            Раздел контроля знаний/{selectedTopic}.docx
-                          </span>
-                          . Его можно открыть в отдельном окне для печати.
-                        </p>
-                      ) : (
-                        <p className="text-[11px] text-slate-500 max-w-md">
-                          Добавьте вопросы для этой темы в код (объект <span className="text-slate-300">QUIZZES</span>),
-                          чтобы тест стал доступен на сайте. Номер темы должен совпадать с номером файла в папке
-                          <span className="text-slate-300"> «Раздел контроля знаний»</span>.
-                        </p>
-                      )}
-                    </div>
+                    <p className="text-slate-500 text-sm p-4 text-center">
+                      Для этой темы видеоурок не найден. Запусти генерацию карты YouTube и пересобери сайт:
+                      <br />
+                      <span className="text-slate-300">npm run generate:ytmap</span>
+                      <br />
+                      Затем обнови страницу.
+                    </p>
                   )}
                 </>
               )}

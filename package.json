@@ -5,9 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "npm run generate:ytmap",
     "build": "vite build",
     "preview": "vite preview",
-    "generate:quizzes": "node scripts/generate-quizzes.mjs"
+    "generate:quizzes": "node scripts/generate-quizzes.mjs",
+    "generate:ytmap": "node scripts/generate-youtube-topic-map.mjs"
   },
   "dependencies": {
     "@google/genai": "^1.38.0",
