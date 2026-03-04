@@ -1,15 +1,23 @@
 import React from 'react';
 import { Download, Gamepad2, PlayCircle } from 'lucide-react';
 
-// Видеоролик по игре
-const GAME_VIDEO_SRC = '/video welder/видеоролик по игре сварщик.mp4';
+const GAME_VIDEO_ID = 'ZOJYVZogcm8';
 
-// Путь к архиву с игрой в папке public/game.
-// Чтобы скачивалась ВСЯ игра (все файлы Unreal), упакуйте папку с билдом в .zip
-// и назовите, например, Game1_Windows.zip, положив её в public/game.
-const GAME_DOWNLOAD_URL = '/game/Game1_Windows.zip';
+const GAME_DOWNLOAD_URL = 'https://disk.yandex.by/d/UFi8wKsKnsj-SKA';
+
+const buildYouTubeEmbedUrl = (videoId: string): string => {
+  const params = new URLSearchParams({
+    modestbranding: '1',
+    rel: '0',
+    iv_load_policy: '3',
+    playsinline: '1',
+  });
+  return `https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}?${params.toString()}`;
+};
 
 const Game: React.FC = () => {
+  const embedUrl = buildYouTubeEmbedUrl(GAME_VIDEO_ID);
+
   return (
     <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-8">
       <header className="space-y-3 text-center">
@@ -32,15 +40,14 @@ const Game: React.FC = () => {
 
       <section className="space-y-6">
         <div className="relative w-full max-w-4xl mx-auto aspect-video bg-black rounded-2xl border border-slate-700 overflow-hidden shadow-2xl shadow-black/60">
-          <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-slate-900/60 via-transparent to-slate-900/10" />
-          <video
-            key={GAME_VIDEO_SRC}
-            controls
-            className="relative z-10 w-full h-full object-contain bg-black"
-          >
-            <source src={GAME_VIDEO_SRC} type="video/mp4" />
-            Ваш браузер не поддерживает воспроизведение видео.
-          </video>
+          <iframe
+            key={embedUrl}
+            src={embedUrl}
+            className="w-full h-full"
+            title="Видеоролик по игре Сварщик"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
+          />
           <div className="absolute bottom-3 left-3 flex items-center gap-2 text-xs text-slate-300 bg-slate-900/70 px-3 py-1.5 rounded-full border border-slate-700/80">
             <PlayCircle size={14} className="text-orange-400" />
             <span>Видеоролик по игре «Сварщики»</span>
@@ -50,16 +57,15 @@ const Game: React.FC = () => {
         <div className="flex flex-col items-center gap-3">
           <a
             href={GAME_DOWNLOAD_URL}
-            download
+            target="_blank"
+            rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-semibold text-sm md:text-base shadow-lg shadow-orange-600/30 transition-colors"
           >
             <Download size={18} />
-            <span>Скачать игру (архив .zip)</span>
+            <span>Скачать игру</span>
           </a>
           <p className="text-[11px] md:text-xs text-slate-500 text-center">
-            Чтобы скачивалась вся игра на Unreal 5, упакуйте папку билда в архив
-            <span className="text-slate-300"> Game1_Windows.zip</span> и поместите его в
-            <span className="text-slate-300"> public/game</span>.
+            Скачайте игру с Яндекс Диска и распакуйте архив для запуска.
           </p>
         </div>
       </section>
@@ -68,7 +74,3 @@ const Game: React.FC = () => {
 };
 
 export default Game;
-
-
-
-
