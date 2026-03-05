@@ -10,12 +10,8 @@ const projectRoot = path.resolve(__dirname, '..');
 const TESTS_DIR = path.join(projectRoot, 'public', 'Раздел контроля знаний');
 const OUTPUT_FILE = path.join(projectRoot, 'quizzes.ts');
 
-// Допустимые буквы вариантов ответов
 const LETTERS = ['а', 'б', 'в', 'г', 'д', 'е', 'ж', 'з'];
 
-/**
- * Чтение и нормализация строк из docx.
- */
 async function readLines(filePath) {
   const result = await mammoth.extractRawText({ path: filePath });
   const text = result.value.replace(/\r/g, '');
@@ -25,34 +21,44 @@ async function readLines(filePath) {
     .filter((l) => l.length > 0);
 }
 
-/**
- * Поиск блока с ответами.
- * Поддерживает варианты:
- * - строка, содержащая фразу "Ключ к тестовым заданиям"
- * - таблица с заголовками "задание" / "ответ"
- */
+function extractNumber(str) {
+  const match = str.match(/(\d+)/);
+  return match ? parseInt(match[1], 10) : null;
+}
+
 function splitQuestionsAndKey(allLines, filePath) {
-  // 1. Пытаемся найти строку с текстом "Ключ ... тест..."
-  let keyStartIndex = allLines.findIndex(
-    (l) => /ключ/i.test(l) && /тест/i.test(l)
-  );
+  const keyPatterns = [
+    /ключ/i,
+    /ответ/i,
+    /ключ.*тест/i,
+    /тест.*ответ/i,
+    /правильн/i,
+  ];
 
-  // 2. Если не нашли, пробуем по схеме "задание / ответ"
+  let keyStartIndex = -1;
+  
+  for (let i = 0; i < allLines.length; i++) {
+    const line = allLines[i];
+    for (const pattern of keyPatterns) {
+      if (pattern.test(line) && line.length < 100) {
+        keyStartIndex = i;
+        break;
+      }
+    }
+    if (keyStartIndex !== -1) break;
+  }
+
   if (keyStartIndex === -1) {
-    const zadanieIdx = allLines.findIndex((l) => /^задан[иея]/i.test(l));
-    const otvetIdx = allLines.findIndex(
-      (l, idx) => idx > zadanieIdx && /^ответ/i.test(l)
-    );
-
-    if (zadanieIdx !== -1 && otvetIdx !== -1) {
-      keyStartIndex = zadanieIdx; // всё, что ниже, считаем блоком ключа
+    for (let i = 0; i < allLines.length; i++) {
+      if (/^ответ/i.test(allLines[i]) || /ответы:/i.test(allLines[i])) {
+        keyStartIndex = i;
+        break;
+      }
     }
   }
 
   if (keyStartIndex === -1) {
-    console.warn(
-      `⚠ Не найден блок с ключом ответов в файле ${path.basename(filePath)}`
-    );
+    console.warn(`⚠ Не найден блок с ключом ответов в файле ${path.basename(filePath)}`);
     return { questionsPartLines: [], keyLines: [] };
   }
 
@@ -61,110 +67,109 @@ function splitQuestionsAndKey(allLines, filePath) {
   return { questionsPartLines, keyLines };
 }
 
-/**
- * Парсинг строки с ответами вида:
- * "ответ  а  б  а  б  в  в  а  универсальных"
- */
 function parseAnswerLetters(keyLines, filePath) {
-  const answerLine = keyLines.find((l) => /^ответ/i.test(l));
-  if (!answerLine) {
-    console.warn(
-      `⚠ Не найдена строка с ответами (начинающаяся с "ответ") в файле ${path.basename(
-        filePath
-      )}`
-    );
-    return [];
+  const answers = [];
+  
+  for (const line of keyLines) {
+    const cleanLine = line.toLowerCase().replace(/[^\w\sа-яё]/gi, ' ');
+    const tokens = cleanLine.split(/\s+/).filter(t => t.length > 0);
+    
+    for (const token of tokens) {
+      if (LETTERS.includes(token)) {
+        answers.push(token);
+      } else if (/^[а-я]$/i.test(token) && token.length === 1) {
+        const lower = token.toLowerCase();
+        if (LETTERS.includes(lower)) {
+          answers.push(lower);
+        }
+      }
+    }
   }
-
-  const answerTokens = answerLine
-    .split(/\s+/)
-    .slice(1)
-    .filter((t) => t.length > 0);
-
-  // Берём только односимвольные буквы а/б/в/...
-  return answerTokens
-    .map((t) => t.toLowerCase())
-    .filter((t) => t.length === 1 && LETTERS.includes(t));
+  
+  if (answers.length === 0) {
+    console.warn(`⚠ Не найдены ответы в файле ${path.basename(filePath)}`);
+  }
+  
+  return answers;
 }
 
-/**
- * Парсинг текстового содержимого одного docx-файла с тестом.
- * Ожидается структура:
- * - блок вопросов с вариантами а), б), в)...
- * - затем блок с ключом ответов (см. splitQuestionsAndKey)
- */
+function isOptionLine(line) {
+  return /^[\-\u2022•\*]?\s*[абвгдежз]\s*[\).:]\s*/i.test(line) ||
+         /^[\-\u2022•\*]?\s*\([абвгдежз]\)\s*/i.test(line) ||
+         /^[\-\u2022•\*]?\s*[абвгдежз]\.\s+/i.test(line);
+}
+
+function isQuestionNumber(line) {
+  return /^\d+[\.\)]?\s/.test(line) && line.length < 30;
+}
+
 async function parseQuizFromFile(filePath, topicId) {
   const allLines = await readLines(filePath);
-
-  const { questionsPartLines, keyLines } = splitQuestionsAndKey(
-    allLines,
-    filePath
-  );
+  
+  const { questionsPartLines, keyLines } = splitQuestionsAndKey(allLines, filePath);
 
   if (!questionsPartLines.length || !keyLines.length) {
     return null;
   }
 
   const answerLetters = parseAnswerLetters(keyLines, filePath);
-
   const questions = [];
+  
   let i = 0;
-
-  // Строка варианта: "[маркер] а) текст" или "[маркер] а. текст"
-  const isOptionLine = (line) =>
-    /^[\-\u2022]?\s*[абвгдежз]\s*[\).]/i.test(line);
+  let currentQuestion = null;
+  let currentOptions = [];
 
   while (i < questionsPartLines.length) {
     const line = questionsPartLines[i];
-
-    // Пропускаем строки, которые начинаются как вариант ответа,
-    // но не привязаны к вопросу (защита от "висячих" строк)
+    const nextLine = questionsPartLines[i + 1];
+    
     if (isOptionLine(line)) {
-      i += 1;
+      const m = line.match(/^[\-\u2022•\*]?\s*([абвгдежз])\s*[\).:]\s*(.*)$/i);
+      if (m) {
+        currentOptions.push(m[2].trim() || m[1]);
+      }
+      i++;
       continue;
     }
-
-    // Собираем текст вопроса до первой строки с вариантом ответа
-    const qLines = [];
-    qLines.push(line);
-    i += 1;
-
-    while (i < questionsPartLines.length && !isOptionLine(questionsPartLines[i])) {
-      qLines.push(questionsPartLines[i]);
-      i += 1;
-    }
-
-    // Теперь собираем варианты
-    const options = [];
-    while (i < questionsPartLines.length && isOptionLine(questionsPartLines[i])) {
-      const optLine = questionsPartLines[i];
-      const m = optLine.match(/^[\-\u2022]?\s*([абвгдежз])\s*[\).]\s*(.*)$/i);
-      if (m) {
-        options.push(m[2].trim());
+    
+    if (currentOptions.length > 0 && currentQuestion) {
+      if (currentOptions.length > 0) {
+        questions.push({
+          id: questions.length + 1,
+          text: currentQuestion,
+          options: currentOptions,
+        });
       }
-      i += 1;
+      currentQuestion = null;
+      currentOptions = [];
     }
+    
+    if (line.length > 10 && line.length < 500) {
+      if (!isQuestionNumber(line) || line.match(/^\d+\s+[А-ЯЁ]/)) {
+        if (currentQuestion) {
+          currentQuestion += ' ' + line;
+        } else {
+          currentQuestion = line;
+        }
+      }
+    }
+    
+    i++;
+  }
 
-    if (options.length > 0) {
-      const textQuestion = qLines.join(' ').replace(/\s+/g, ' ').trim();
-      questions.push({
-        id: questions.length + 1,
-        text: textQuestion,
-        options,
-      });
-    }
+  if (currentOptions.length > 0 && currentQuestion) {
+    questions.push({
+      id: questions.length + 1,
+      text: currentQuestion,
+      options: currentOptions,
+    });
   }
 
   if (questions.length === 0) {
-    console.warn(
-      `⚠ Не удалось выделить ни одного вопроса из файла ${path.basename(
-        filePath
-      )}`
-    );
+    console.warn(`⚠ Не удалось выделить вопросы из файла ${path.basename(filePath)}`);
     return null;
   }
 
-  // Привязываем буквы-ответы к вариантам
   const questionsWithAnswers = questions.map((q, index) => {
     const letter = answerLetters[index] || null;
     let correctIndex = 0;
@@ -191,7 +196,32 @@ async function parseQuizFromFile(filePath, topicId) {
 async function generate() {
   console.log('📄 Генерация тестов из папки:', TESTS_DIR);
 
-  const entries = await fs.readdir(TESTS_DIR, { withFileTypes: true });
+  let entries;
+  try {
+    entries = await fs.readdir(TESTS_DIR, { withFileTypes: true });
+  } catch (err) {
+    console.error('Папка с тестами не найдена:', err.message);
+    const fallback = `// Этот файл сгенерирован автоматически скриптом scripts/generate-quizzes.mjs
+// Не редактируйте его вручную: изменения будут перезаписаны.
+
+export type QuizQuestion = {
+  id: number;
+  text: string;
+  options: string[];
+  correctIndex: number;
+};
+
+export type Quiz = {
+  title: string;
+  questions: QuizQuestion[];
+};
+
+export const QUIZZES: Record<number, Quiz> = {
+};
+`;
+    await fs.writeFile(OUTPUT_FILE, fallback, 'utf8');
+    return;
+  }
 
   const quizzes = {};
 
@@ -202,7 +232,6 @@ async function generate() {
     const base = entry.name.replace(/\.docx$/i, '');
     const topicId = Number.parseInt(base, 10);
     if (!Number.isFinite(topicId)) {
-      // пропускаем файлы типа ОКР.docx, Перечень тем.docx
       continue;
     }
 
@@ -213,9 +242,12 @@ async function generate() {
       const quiz = await parseQuizFromFile(fullPath, topicId);
       if (quiz && quiz.questions.length > 0) {
         quizzes[topicId] = quiz;
+        console.log(`  ✅ Найдено вопросов: ${quiz.questions.length}`);
+      } else {
+        console.log(`  ⚠ Вопросы не найдены`);
       }
     } catch (err) {
-      console.error(`Ошибка при обработке ${entry.name}:`, err);
+      console.error(`  ❌ Ошибка: ${err.message}`);
     }
   }
 
@@ -260,11 +292,11 @@ async function generate() {
 
   await fs.writeFile(OUTPUT_FILE, output, 'utf8');
 
-  console.log(`✅ Файл с тестами успешно сгенерирован: ${OUTPUT_FILE}`);
+  console.log(`\n✅ Файл с тестами успешно сгенерирован: ${OUTPUT_FILE}`);
+  console.log(`📊 Всего тем с тестами: ${sortedIds.length}`);
 }
 
 generate().catch((err) => {
   console.error('Не удалось сгенерировать тесты:', err);
   process.exit(1);
 });
-

@@ -1,9 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { CheckCircle, XCircle, RotateCcw, Award } from 'lucide-react';
 import { QUIZZES } from '../quizzes';
 
 type QuizProps = {
   topicId: number;
+};
+
+type ShuffledQuestion = {
+  originalIndex: number;
+  text: string;
+  options: string[];
+  correctIndex: number;
+  originalCorrectIndex: number;
+};
+
+const shuffleArray = <T,>(array: T[]): T[] => {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
 };
 
 const Quiz: React.FC<QuizProps> = ({ topicId }) => {
@@ -14,6 +31,30 @@ const Quiz: React.FC<QuizProps> = ({ topicId }) => {
   const [showResult, setShowResult] = useState(false);
   const [score, setScore] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
+  const [shuffledQuestions, setShuffledQuestions] = useState<ShuffledQuestion[]>([]);
+
+  const initializeQuiz = useMemo(() => {
+    if (!quiz || !quiz.questions || quiz.questions.length === 0) {
+      return null;
+    }
+
+    const shuffled = shuffleArray(quiz.questions).map((q, idx) => {
+      const optionIndices = q.options.map((_, i) => i);
+      const shuffledIndices = shuffleArray(optionIndices);
+      
+      return {
+        originalIndex: q.id,
+        text: q.text,
+        options: shuffledIndices.map(i => q.options[i]),
+        correctIndex: shuffledIndices.indexOf(q.correctIndex),
+        originalCorrectIndex: q.correctIndex,
+      };
+    });
+
+    return shuffled;
+  }, [quiz]);
+
+  const questions = initializeQuiz || [];
 
   if (!quiz || !quiz.questions || quiz.questions.length === 0) {
     return (
@@ -23,8 +64,8 @@ const Quiz: React.FC<QuizProps> = ({ topicId }) => {
     );
   }
 
-  const question = quiz.questions[currentQuestion];
-  const totalQuestions = quiz.questions.length;
+  const question = shuffledQuestions.length > 0 ? shuffledQuestions[currentQuestion] : questions[currentQuestion];
+  const totalQuestions = shuffledQuestions.length > 0 ? shuffledQuestions.length : questions.length;
 
   const handleAnswer = (answerIndex: number) => {
     if (showResult) return;
@@ -48,12 +89,32 @@ const Quiz: React.FC<QuizProps> = ({ topicId }) => {
   };
 
   const handleRestart = () => {
+    const shuffled = shuffleArray(quiz.questions).map((q) => {
+      const optionIndices = q.options.map((_, i) => i);
+      const shuffledIndices = shuffleArray(optionIndices);
+      
+      return {
+        originalIndex: q.id,
+        text: q.text,
+        options: shuffledIndices.map(i => q.options[i]),
+        correctIndex: shuffledIndices.indexOf(q.correctIndex),
+        originalCorrectIndex: q.correctIndex,
+      };
+    });
+    setShuffledQuestions(shuffled);
     setCurrentQuestion(0);
     setSelectedAnswer(null);
     setShowResult(false);
     setScore(0);
     setIsFinished(false);
   };
+
+  // Initialize on first render
+  React.useEffect(() => {
+    if (shuffledQuestions.length === 0 && questions.length > 0) {
+      handleRestart();
+    }
+  }, []);
 
   if (isFinished) {
     const percentage = Math.round((score / totalQuestions) * 100);
