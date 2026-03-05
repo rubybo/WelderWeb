@@ -10,7 +10,7 @@ const Safety: React.FC = () => {
           <div className="p-3 bg-red-500/20 rounded-full text-red-500">
             <AlertTriangle size={32} />
           </div>
-          <h2 className="text-3xl font-bold text-red-500">Техника безопасности</h2>
+          <h2 className="text-3xl font-bold text-red-500">Охрана труда при сварочных работах</h2>
         </div>
         <p className="text-slate-300 text-lg mb-6">
           Сварка — это процесс с повышенной опасностью. Игнорирование правил может привести к потере зрения, ожогам или пожару.
