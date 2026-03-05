@@ -58,7 +58,7 @@ const Quiz: React.FC<QuizProps> = ({ topicId }) => {
 
   if (!quiz || !quiz.questions || quiz.questions.length === 0) {
     return (
-      <div className="p-4 text-center text-slate-400">
+      <div className="p-4 md:p-6 text-center text-slate-400 text-sm md:text-base">
         Тест для этой темы пока недоступен.
       </div>
     );
@@ -136,21 +136,21 @@ const Quiz: React.FC<QuizProps> = ({ topicId }) => {
     }
 
     return (
-      <div className="p-6 text-center space-y-6">
+      <div className="p-4 md:p-6 text-center space-y-4 md:space-y-6">
         <div className="flex justify-center">
-          <Award size={64} className={iconColor} />
+          <Award size={48} md:size={64} className={iconColor} />
         </div>
         <div>
-          <h3 className="text-2xl font-bold text-slate-100">Тест завершён!</h3>
-          <p className="text-slate-400 mt-2">{message}</p>
+          <h3 className="text-xl md:text-2xl font-bold text-slate-100">Тест завершён!</h3>
+          <p className="text-slate-400 mt-2 text-sm md:text-base">{message}</p>
         </div>
-        <div className="text-4xl font-bold text-orange-500">
+        <div className="text-3xl md:text-4xl font-bold text-orange-500">
           {score} / {totalQuestions}
-          <span className="text-lg text-slate-400 ml-2">({percentage}%)</span>
+          <span className="text-base md:text-lg text-slate-400 ml-2">({percentage}%)</span>
         </div>
         <button
           onClick={handleRestart}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-500 text-white font-medium transition-colors"
+          className="inline-flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 rounded-lg bg-orange-600 hover:bg-orange-500 text-white font-medium transition-colors"
         >
           <RotateCcw size={18} />
           Пройти снова
@@ -160,8 +160,8 @@ const Quiz: React.FC<QuizProps> = ({ topicId }) => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between text-sm text-slate-400">
+    <div className="space-y-4 md:space-y-6">
+      <div className="flex items-center justify-between text-xs md:text-sm text-slate-400">
         <span>Вопрос {currentQuestion + 1} из {totalQuestions}</span>
         <span className="text-orange-400">Баллы: {score}</span>
       </div>
@@ -173,15 +173,15 @@ const Quiz: React.FC<QuizProps> = ({ topicId }) => {
         />
       </div>
 
-      <div className="space-y-4">
-        <h3 className="text-lg font-medium text-slate-100">{question.text}</h3>
+      <div className="space-y-3 md:space-y-4">
+        <h3 className="text-sm md:text-lg font-medium text-slate-100">{question.text}</h3>
         
         <div className="space-y-2">
           {question.options.map((option, idx) => {
             const isSelected = selectedAnswer === idx;
             const isCorrect = idx === question.correctIndex;
             
-            let buttonClass = 'w-full p-4 text-left rounded-xl border transition-all ';
+            let buttonClass = 'w-full p-3 md:p-4 text-left rounded-xl border transition-all ';
             
             if (!showResult) {
               buttonClass += isSelected 
@@ -204,16 +204,16 @@ const Quiz: React.FC<QuizProps> = ({ topicId }) => {
                 disabled={showResult}
                 className={buttonClass}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 md:gap-3">
                   <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg bg-slate-700 text-sm font-medium">
                     {String.fromCharCode(1072 + idx)}
                   </span>
-                  <span className="flex-1">{option}</span>
+                  <span className="flex-1 text-sm md:text-base">{option}</span>
                   {showResult && isCorrect && (
-                    <CheckCircle size={20} className="text-green-500" />
+                    <CheckCircle size={18} md:size={20} className="text-green-500 flex-shrink-0" />
                   )}
                   {showResult && isSelected && !isCorrect && (
-                    <XCircle size={20} className="text-red-500" />
+                    <XCircle size={18} md:size={20} className="text-red-500 flex-shrink-0" />
                   )}
                 </div>
               </button>

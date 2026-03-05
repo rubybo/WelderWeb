@@ -175,7 +175,7 @@ const Materials: React.FC = () => {
             </p>
           </div>
 
-          <div className="bg-slate-800/80 border border-slate-700 rounded-2xl p-3 max-h-[70vh] overflow-y-auto shadow-inner shadow-black/40">
+          <div className="bg-slate-800/80 border border-slate-700 rounded-2xl p-3 max-h-[50vh] md:max-h-[70vh] overflow-y-auto shadow-inner shadow-black/40 touch-pan-y">
             {filteredTopics.length === 0 && (
               <p className="text-xs text-slate-500 text-center py-4">
                 Темы по запросу не найдены. Попробуйте изменить фильтр.
@@ -196,7 +196,7 @@ const Materials: React.FC = () => {
                       setSelectedTopic(n);
                       setActiveTab('word');
                     }}
-                    className={`text-left rounded-xl p-4 border transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/80 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900
+                    className={`text-left rounded-xl p-3 md:p-4 border transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/80 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900
                       ${
                         isActive
                           ? 'border-orange-500/90 bg-slate-900 text-orange-50 shadow-lg shadow-orange-500/25'
@@ -213,11 +213,11 @@ const Materials: React.FC = () => {
                         </span>
                       )}
                     </div>
-                    <div className="font-semibold text-sm mb-1">{topic.title}</div>
-                    <div className="text-[11px] text-slate-400 mb-1">
+                    <div className="font-semibold text-sm mb-1 line-clamp-2">{topic.title}</div>
+                    <div className="text-[10px] md:text-[11px] text-slate-400 hidden md:block">
                       Конспект Word{hasPresent && <span className="text-slate-300"> + презентация</span>}{hasQuiz && <span className="text-green-400"> + тест</span>}
                     </div>
-                    <div className="flex flex-wrap gap-1.5 text-[10px] text-slate-400">
+                    <div className="flex flex-wrap gap-1 text-[10px] text-slate-400 hidden lg:flex">
                       <span className="px-2 py-0.5 rounded-full bg-slate-900/80 border border-slate-700">
                         Word: word/{n}.docx
                       </span>

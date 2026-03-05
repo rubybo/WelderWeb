@@ -63,7 +63,7 @@ const App: React.FC = () => {
 
       <main
         className={`
-          ${currentView === ViewState.HOME ? '' : 'pt-6 pb-24 md:pb-10'}
+          ${currentView === ViewState.HOME ? '' : 'pt-4 md:pt-6 pb-20 md:pb-10'}
           ${currentView === ViewState.HOME ? '' : 'min-h-screen'}
           animate-fade-in
         `}
