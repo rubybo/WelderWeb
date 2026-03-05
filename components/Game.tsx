@@ -3,7 +3,7 @@ import { Download, Gamepad2, PlayCircle } from 'lucide-react';
 
 const GAME_VIDEO_ID = 'ZOJYVZogcm8';
 
-const GAME_DOWNLOAD_URL = 'https://disk.yandex.by/d/UFi8wKsKnsj-SKA';
+const GAME_DOWNLOAD_URL = 'https://disk.yandex.by/d/UFi8wYKnsj-SKA';
 
 const buildYouTubeEmbedUrl = (videoId: string): string => {
   const params = new URLSearchParams({
@@ -64,9 +64,9 @@ const Game: React.FC = () => {
             <Download size={18} />
             <span>Скачать игру</span>
           </a>
-          <p className="text-[11px] md:text-xs text-slate-500 text-center">
+          {/* <p className="text-[11px] md:text-xs text-slate-500 text-center">
             Скачайте игру с Яндекс Диска и распакуйте архив для запуска.
-          </p>
+          </p> */}
         </div>
       </section>
     </div>

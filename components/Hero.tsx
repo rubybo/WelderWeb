@@ -40,9 +40,9 @@ const Hero: React.FC<HeroProps> = ({ onStart }) => {
             Начать обучение
             <ChevronRight className="ml-2 group-hover:translate-x-1 transition-transform" />
           </button>
-          <a href="#about" className="text-slate-400 hover:text-white transition-colors underline-offset-4 hover:underline">
+          {/* <a href="#about" className="text-slate-400 hover:text-white transition-colors underline-offset-4 hover:underline">
             Узнать больше
-          </a>
+          </a> */}
         </div>
 
         {/* Features Grid Mini */}

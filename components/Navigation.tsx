@@ -18,11 +18,11 @@ interface NavigationProps {
 const Navigation: React.FC<NavigationProps> = ({ currentView, onNavigate }) => {
   const navItems = [
     { view: ViewState.HOME, label: 'Главная', icon: <Flame size={20} /> },
-    { view: ViewState.MODULES, label: 'Теория', icon: <BookOpen size={20} /> },
+    { view: ViewState.MODULES, label: 'Видеоурок', icon: <BookOpen size={20} /> },
     { view: ViewState.MATERIALS, label: 'УМК', icon: <FolderOpen size={20} /> },
     { view: ViewState.GAME, label: 'Игра', icon: <Gamepad2 size={20} /> },
     { view: ViewState.ANALYZER, label: 'Анализ шва', icon: <Camera size={20} /> },
-    { view: ViewState.CHAT, label: 'ИИ Наставник', icon: <MessageSquare size={20} /> },
+    { view: ViewState.CHAT, label: 'ИИ наставник', icon: <MessageSquare size={20} /> },
     { view: ViewState.SAFETY, label: 'ТБ', icon: <ShieldAlert size={20} /> },
   ];
 

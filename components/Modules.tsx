@@ -37,7 +37,7 @@ const Modules: React.FC = () => {
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-6">
           <div>
             <h2 className="text-3xl md:text-4xl font-extrabold text-slate-50 border-l-4 border-orange-500 pl-4">
-              Теория сварки — обучающие ролики
+              Видеоурок 
             </h2>
             <p className="text-slate-300/80 text-sm mt-2 ml-5 max-w-2xl">
               Выберите раздел, чтобы посмотреть соответствующий видеоматериал по подготовке металла,
@@ -51,7 +51,7 @@ const Modules: React.FC = () => {
           <div className="flex flex-wrap items-center gap-2 mb-2">
             <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
               <PlayCircle size={14} className="text-orange-400" />
-              Видеотренажёр по теории
+               Видеомастер-класс
             </span>
           </div>
           <div className="flex flex-wrap gap-2 mb-4">
