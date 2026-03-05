@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { YOUTUBE_PLAYLIST_ID, YOUTUBE_TOPIC_TO_VIDEO_ID } from '../youtubeTopicMap';
 import { TOPICS } from '../topics';
+import { QUIZZES } from '../quizzes';
+import Quiz from './Quiz';
 
 // Презентации — явное сопоставление, чтобы учесть разные расширения
 // ВАЖНО: файлы лежат в папке public/word/present, поэтому путь должен быть /word/present/...
@@ -46,7 +48,7 @@ const buildYouTubeEmbedUrlByVideoId = (videoId: string): string => {
   return `https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}?${params.toString()}`;
 };
 
-type ActiveTab = 'word' | 'present' | 'video';
+type ActiveTab = 'word' | 'present' | 'video' | 'quiz';
 
 const buildOfficeEmbedUrl = (relativePath: string | undefined): string | null => {
   if (!relativePath) return null;
@@ -136,7 +138,7 @@ const Materials: React.FC = () => {
           {/* <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-orange-600/20 text-orange-400 border border-orange-500/40">
             📚
           </span> */}
-          <span className="border-l-4 border-orange-500 pl-4">Материалы по темам</span>
+          <span className="border-l-4 border-orange-500 pl-4">Учебно-методический комплекс</span>
         </h2>
         <p className="text-slate-400 ml-[3.75rem] max-w-2xl">
           Выберите тему, чтобы открыть конспект и при наличии презентацию прямо на сайте.
@@ -185,6 +187,7 @@ const Materials: React.FC = () => {
                 const n = topic.id;
                 const isActive = selectedTopic === n;
                 const hasPresent = !!PRESENTATION_FILES[n];
+                const hasQuiz = !!QUIZZES[n];
 
                 return (
                   <button
@@ -212,7 +215,7 @@ const Materials: React.FC = () => {
                     </div>
                     <div className="font-semibold text-sm mb-1">{topic.title}</div>
                     <div className="text-[11px] text-slate-400 mb-1">
-                      Конспект Word{hasPresent && <span className="text-slate-300"> + презентация</span>}
+                      Конспект Word{hasPresent && <span className="text-slate-300"> + презентация</span>}{hasQuiz && <span className="text-green-400"> + тест</span>}
                     </div>
                     <div className="flex flex-wrap gap-1.5 text-[10px] text-slate-400">
                       <span className="px-2 py-0.5 rounded-full bg-slate-900/80 border border-slate-700">
@@ -248,7 +251,7 @@ const Materials: React.FC = () => {
                     : 'Выберите тему слева'}
                 </h3>
                 <p className="text-slate-400 text-sm mt-1">
-                  Просмотр Word-конспектов, презентаций и видеоуроков прямо на сайте.
+                  Просмотр Word-конспектов, презентаций и видеоуроков (взятых из открытых источников) прямо на сайте. 
                 </p>
                 {selectedTopic && (
                   <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
@@ -264,9 +267,11 @@ const Materials: React.FC = () => {
                         Для этой темы презентация не загружена
                       </span>
                     )}
-                    {/* {hasVideo && (
-                    
-                    )} */}
+                    {QUIZZES[selectedTopic] && (
+                      <span className="px-2 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/50 text-blue-300">
+                        Тест доступен
+                      </span>
+                    )}
                   </div>
                 )}
               </div>
@@ -281,7 +286,7 @@ const Materials: React.FC = () => {
                     }`}
                     onClick={() => setActiveTab('word')}
                   >
-                    Конспект (Word)
+                    Опорный конспект
                   </button>
                   <button
                     className={`px-3 py-1.5 text-sm rounded-md ${
@@ -302,6 +307,16 @@ const Materials: React.FC = () => {
                     onClick={() => setActiveTab('video')}
                   >
                     Видео
+                  </button>
+                  <button
+                    className={`px-3 py-1.5 text-sm rounded-md ${
+                      activeTab === 'quiz'
+                        ? 'bg-orange-600 text-white shadow shadow-orange-500/40'
+                        : 'text-slate-300 hover:text-white hover:bg-slate-700'
+                    }`}
+                    onClick={() => setActiveTab('quiz')}
+                  >
+                    Тест
                   </button>
                 </div>
 
@@ -393,6 +408,12 @@ const Materials: React.FC = () => {
                     </p>
                   )}
                 </>
+              )}
+
+              {selectedTopic && activeTab === 'quiz' && (
+                <div className="w-full h-full overflow-y-auto p-4">
+                  <Quiz topicId={selectedTopic} />
+                </div>
               )}
             </div>
           </div>
