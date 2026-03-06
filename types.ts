@@ -5,7 +5,8 @@ export enum ViewState {
   CHAT = 'CHAT',
   SAFETY = 'SAFETY',
   MATERIALS = 'MATERIALS',
-  GAME = 'GAME'
+  GAME = 'GAME',
+  TRAINING = 'TRAINING'
 }
 
 export interface WeldingModule {

@@ -7,6 +7,7 @@ import ChatAssistant from './components/ChatAssistant';
 import Safety from './components/Safety';
 import Materials from './components/Materials';
 import Game from './components/Game';
+import TrainingGame from './components/TrainingGame';
 import { ViewState } from './types';
 
 const App: React.FC = () => {
@@ -28,6 +29,8 @@ const App: React.FC = () => {
         return <Safety />;
       case ViewState.GAME:
         return <Game />;
+      case ViewState.TRAINING:
+        return <TrainingGame />;
       default:
         return <Hero onStart={() => setCurrentView(ViewState.MODULES)} />;
     }
