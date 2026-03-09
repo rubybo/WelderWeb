@@ -23,9 +23,9 @@ const Navigation: React.FC<NavigationProps> = ({ currentView, onNavigate }) => {
     { view: ViewState.MATERIALS, label: 'УМК', icon: <FolderOpen size={20} /> },
     { view: ViewState.TRAINING, label: 'Тренажёр', icon: <Zap size={20} /> },
     { view: ViewState.GAME, label: 'Игра', icon: <Gamepad2 size={20} /> },
-    { view: ViewState.ANALYZER, label: 'Анализ', icon: <Camera size={20} /> },
-    { view: ViewState.CHAT, label: 'ИИ', icon: <MessageSquare size={20} /> },
-    { view: ViewState.SAFETY, label: 'ТБ', icon: <ShieldAlert size={20} /> },
+    { view: ViewState.ANALYZER, label: 'Анализ шва', icon: <Camera size={20} /> },
+    { view: ViewState.CHAT, label: 'ИИ наставник', icon: <MessageSquare size={20} /> },
+    { view: ViewState.SAFETY, label: 'Охрана труда', icon: <ShieldAlert size={20} /> },
   ];
 
   return (

@@ -164,10 +164,10 @@ const TrainingGame: React.FC = () => {
         <header className="space-y-4 text-center">
           <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-gradient-to-r from-orange-600/20 to-red-600/20 border border-orange-500/40">
             <Sparkles className="text-orange-400" size={20} />
-            <span className="text-sm font-semibold text-orange-300">Тренажёр</span>
+            <span className="text-sm font-semibold text-orange-300">Интеллектуальный тренажёр</span>
           </div>
           <h2 className="text-3xl md:text-4xl font-bold text-slate-100">
-            Проверь свои знания!
+            Проверь свои знания
           </h2>
           <p className="text-slate-400 max-w-xl mx-auto">
             Выбери режим и пройди мини-игру, чтобы закрепить материал по сварке
@@ -232,10 +232,10 @@ const TrainingGame: React.FC = () => {
             </div>
           </button>
         </div>
-
+{/* 
         <div className="text-center text-slate-500 text-sm">
           Доступно вопросов: {allQuestions.length} из тем: {Object.keys(QUIZZES).length}
-        </div>
+        </div> */}
       </div>
     );
   }
