@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Award, 
   Zap, 
@@ -47,6 +47,22 @@ const TrainingGame: React.FC = () => {
   const [timeLeft, setTimeLeft] = useState(0);
   const [gameOver, setGameOver] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
+
+  useEffect(() => {
+    if (!gameStarted || gameOver || gameMode !== 'speedrun' || timeLeft <= 0) return;
+
+    const timer = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          setGameOver(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [gameStarted, gameOver, gameMode, timeLeft]);
 
   const allQuestions = useMemo(() => {
     const questions: Question[] = [];
