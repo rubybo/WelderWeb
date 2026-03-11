@@ -1,7 +1,7 @@
 import React from 'react';
 import { Download, Gamepad2, PlayCircle } from 'lucide-react';
 
-const GAME_VIDEO_ID = 'ZOJYVZogcm8';
+const GAME_VIDEO_ID = 'ndwwX572MQo';
 
 const GAME_DOWNLOAD_URL = 'https://disk.yandex.by/d/UFi8wYKnsj-SKA';
 
