@@ -12,12 +12,9 @@ const OUTPUT_FILE = path.join(projectRoot, 'quizzes.ts');
 
 const LETTERS = ['а', 'б', 'в', 'г', 'д', 'е', 'ж', 'з', 'и', 'к', 'л', 'м', 'н', 'о', 'п', 'р'];
 
-async function readLines(filePath) {
+async function readText(filePath) {
   const result = await mammoth.extractRawText({ path: filePath });
-  let text = result.value;
-  text = text.replace(/\r/g, '');
-  text = text.replace(/\*/g, '');
-  return text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  return result.value.replace(/\r/g, '').replace(/\*/g, '');
 }
 
 function isAnswerLetter(line) {
@@ -29,13 +26,67 @@ function isQuestionStart(line) {
   return /^(\d+)[\.\)]\s/.test(line) && line.length < 80;
 }
 
-async function parseQuizFromFile(filePath, topicId) {
-  const lines = await readLines(filePath);
+async function parseQuizWithBoldAnswers(filePath, topicId) {
+  const text = await readText(filePath);
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
   
-  if (lines.length === 0) {
-    return null;
+  const questions = [];
+  let currentQuestion = '';
+  let currentOptions = [];
+  let correctOptionIdx = -1;
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const nextLine = lines[i + 1] || '';
+    
+    if (isQuestionStart(line)) {
+      if (currentQuestion && currentOptions.length >= 2) {
+        questions.push({
+          id: questions.length + 1,
+          text: currentQuestion.trim(),
+          options: currentOptions.map(o => o.trim()).filter(o => o.length > 2),
+          correctIndex: correctOptionIdx >= 0 ? correctOptionIdx : 0
+        });
+      }
+      currentQuestion = line.replace(/^\d+[\.\)]\s*/, '').trim();
+      currentOptions = [];
+      correctOptionIdx = -1;
+      continue;
+    }
+    
+    const optionMatch = line.match(/^([абвгдежзи])\)[\s\t]+(.+)/i);
+    if (optionMatch) {
+      const letter = optionMatch[1].toLowerCase();
+      const optText = optionMatch[2].trim();
+      
+      if (line.includes('__')) {
+        correctOptionIdx = currentOptions.length;
+      }
+      
+      currentOptions.push(optText);
+    }
   }
+  
+  if (currentQuestion && currentOptions.length >= 2) {
+    questions.push({
+      id: questions.length + 1,
+      text: currentQuestion.trim(),
+      options: currentOptions.map(o => o.trim()).filter(o => o.length > 2),
+      correctIndex: correctOptionIdx >= 0 ? correctOptionIdx : 0
+    });
+  }
+  
+  if (questions.length > 0) {
+    console.log(`  ✅ ${questions.length} вопросов (с __)`);
+    return { title: `Тема ${topicId}`, questions };
+  }
+  return null;
+}
 
+async function parseQuizWithAnswers(filePath, topicId) {
+  const text = await readText(filePath);
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  
   let answerStartIdx = -1;
   for (let i = Math.max(0, lines.length - 60); i < lines.length; i++) {
     if (isAnswerLetter(lines[i])) {
@@ -45,7 +96,6 @@ async function parseQuizFromFile(filePath, topicId) {
   }
 
   if (answerStartIdx === -1) {
-    console.warn(`⚠ Нет ответов: ${path.basename(filePath)}`);
     return null;
   }
 
@@ -74,11 +124,9 @@ async function parseQuizFromFile(filePath, topicId) {
     }
 
     if (inQuestion) {
-      if (line.match(/^[абвгдежзи]\)[\s\t]/i) || line.match(/^[абвгдежзи]\s+[а-яё]/i)) {
-        const opt = line.replace(/^[абвгдежзи]\)[\s\t]*/, '').replace(/^[абвгдежзи]\s+/, '').trim();
-        if (opt.length > 1) {
-          currentOptions.push(opt);
-        }
+      const optionMatch = line.match(/^([абвгдежзи])\)[\s\t]+(.+)/i);
+      if (optionMatch) {
+        currentOptions.push(optionMatch[2].trim());
       }
     }
   }
@@ -92,7 +140,6 @@ async function parseQuizFromFile(filePath, topicId) {
   }
 
   if (questions.length === 0) {
-    console.warn(`⚠ Нет вопросов: ${path.basename(filePath)}`);
     return null;
   }
 
@@ -112,18 +159,19 @@ async function parseQuizFromFile(filePath, topicId) {
       }
     }
 
-    return {
-      ...q,
-      correctIndex
-    };
+    return { ...q, correctIndex };
   });
 
   console.log(`  ✅ ${questionsWithAnswers.length} вопросов`);
+  return { title: `Тема ${topicId}`, questions: questionsWithAnswers };
+}
 
-  return {
-    title: `Тема ${topicId}`,
-    questions: questionsWithAnswers
-  };
+async function parseQuizFromFile(filePath, topicId) {
+  let quiz = await parseQuizWithBoldAnswers(filePath, topicId);
+  if (!quiz) {
+    quiz = await parseQuizWithAnswers(filePath, topicId);
+  }
+  return quiz;
 }
 
 async function generate() {
