@@ -10,168 +10,182 @@ const projectRoot = path.resolve(__dirname, '..');
 const TESTS_DIR = path.join(projectRoot, 'public', 'Раздел контроля знаний');
 const OUTPUT_FILE = path.join(projectRoot, 'quizzes.ts');
 
-const LETTERS = ['а', 'б', 'в', 'г', 'д', 'е', 'ж', 'з', 'и', 'к', 'л', 'м', 'н', 'о', 'п', 'р'];
+const LETTERS = ['а', 'б', 'в', 'г', 'д', 'е', 'ж', 'з'];
 
 async function readText(filePath) {
   const result = await mammoth.extractRawText({ path: filePath });
   return result.value.replace(/\r/g, '').replace(/\*/g, '');
 }
 
-function isAnswerLetter(line) {
-  const cleaned = line.toLowerCase().replace(/[^а-яё]/g, '');
-  return cleaned.length === 1 && LETTERS.includes(cleaned);
-}
-
-function isQuestionStart(line) {
-  return /^(\d+)[\.\)]\s/.test(line) && line.length < 80;
-}
-
-async function parseQuizWithBoldAnswers(filePath, topicId) {
-  const text = await readText(filePath);
+function parseFile(text, topicId) {
   const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
   
   const questions = [];
   let currentQuestion = '';
   let currentOptions = [];
-  let correctOptionIdx = -1;
+  let correctIdx = -1;
+  let inQuestion = false;
+  let optionsStarted = false;
   
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    const nextLine = lines[i + 1] || '';
     
-    if (isQuestionStart(line)) {
+    // Skip level markers
+    if (line.match(/^i+v?\s*уровень/i) || line.match(/^уровень/i)) continue;
+    
+    // Question number alone - next line has the question
+    if (line.match(/^\d+[\.\)]\s*$/) && i + 1 < lines.length) {
       if (currentQuestion && currentOptions.length >= 2) {
         questions.push({
-          id: questions.length + 1,
-          text: currentQuestion.trim(),
-          options: currentOptions.map(o => o.trim()).filter(o => o.length > 2),
-          correctIndex: correctOptionIdx >= 0 ? correctOptionIdx : 0
+          text: currentQuestion.replace(/__/g, '').trim(),
+          options: currentOptions.filter(o => o.length > 2),
+          correctIndex: correctIdx >= 0 ? correctIdx : 0
         });
       }
-      currentQuestion = line.replace(/^\d+[\.\)]\s*/, '').trim();
+      currentQuestion = lines[i + 1].replace(/__/g, '').trim();
       currentOptions = [];
-      correctOptionIdx = -1;
+      correctIdx = -1;
+      optionsStarted = false;
+      i++;
       continue;
     }
     
-    const optionMatch = line.match(/^([абвгдежзи])\)[\s\t]+(.+)/i);
-    if (optionMatch) {
-      const letter = optionMatch[1].toLowerCase();
-      const optText = optionMatch[2].trim();
-      
+    // Question with text on same line
+    const qMatch = line.match(/^(\d+)[\.\)]\s+(.+)/);
+    if (qMatch) {
+      if (currentQuestion && currentOptions.length >= 2) {
+        questions.push({
+          text: currentQuestion.replace(/__/g, '').trim(),
+          options: currentOptions.filter(o => o.length > 2),
+          correctIndex: correctIdx >= 0 ? correctIdx : 0
+        });
+      }
+      currentQuestion = qMatch[2].replace(/__/g, '').trim();
+      currentOptions = [];
+      correctIdx = -1;
+      optionsStarted = false;
+      continue;
+    }
+    
+    // Question in __ without number (continuation)
+    if (line.startsWith('__') && line.endsWith('__') && !line.match(/^\d/)) {
+      if (currentQuestion && currentOptions.length >= 2) {
+        questions.push({
+          text: currentQuestion.replace(/__/g, '').trim(),
+          options: currentOptions.filter(o => o.length > 2),
+          correctIndex: correctIdx >= 0 ? correctIdx : 0
+        });
+      }
+      currentQuestion = line.replace(/__/g, '').trim();
+      currentOptions = [];
+      correctIdx = -1;
+      optionsStarted = false;
+      continue;
+    }
+    
+    // Option with letter: "а) ..." or "а. ..."
+    const optMatch = line.match(/^([абвгдежзи])\)\s+(.+)/i);
+    if (optMatch) {
+      optionsStarted = true;
       if (line.includes('__')) {
-        correctOptionIdx = currentOptions.length;
+        correctIdx = currentOptions.length;
+      }
+      currentOptions.push(optMatch[2].replace(/__/g, '').trim());
+      continue;
+    }
+    
+    // Option without letter - starts after question, has semicolon or is multi-line
+    if (currentQuestion && !optionsStarted && line.length > 3) {
+      // Check if line contains semicolons (multiple options on one line)
+      if (line.includes(';') || line.includes('¶')) {
+        const parts = line.split(/[;¶]/).filter(p => p.trim().length > 2);
+        if (parts.length >= 2) {
+          optionsStarted = true;
+          parts.forEach((part, idx) => {
+            const cleaned = part.trim().replace(/__/g, '');
+            if (cleaned.length > 2) {
+              if (part.includes('__')) correctIdx = currentOptions.length;
+              currentOptions.push(cleaned);
+            }
+          });
+          continue;
+        }
       }
       
-      currentOptions.push(optText);
+      // Single option on its own line (starts without letter, after question)
+      if (!line.match(/^[абвгдежзи]\s/i) && !line.match(/^\d/)) {
+        const cleaned = line.replace(/__/g, '').trim();
+        if (cleaned.length > 3 && cleaned.length < 100) {
+          optionsStarted = true;
+          if (line.includes('__')) correctIdx = currentOptions.length;
+          currentOptions.push(cleaned);
+        }
+      }
     }
   }
   
   if (currentQuestion && currentOptions.length >= 2) {
     questions.push({
-      id: questions.length + 1,
-      text: currentQuestion.trim(),
-      options: currentOptions.map(o => o.trim()).filter(o => o.length > 2),
-      correctIndex: correctOptionIdx >= 0 ? correctOptionIdx : 0
+      text: currentQuestion.replace(/__/g, '').trim(),
+      options: currentOptions.filter(o => o.length > 2),
+      correctIndex: correctIdx >= 0 ? correctIdx : 0
     });
   }
   
-  if (questions.length > 0) {
-    console.log(`  ✅ ${questions.length} вопросов (с __)`);
-    return { title: `Тема ${topicId}`, questions };
-  }
-  return null;
+  return questions;
 }
 
-async function parseQuizWithAnswers(filePath, topicId) {
-  const text = await readText(filePath);
-  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+function extractAnswers(text) {
+  const answers = [];
+  const lines = text.split('\n');
   
-  let answerStartIdx = -1;
-  for (let i = Math.max(0, lines.length - 60); i < lines.length; i++) {
-    if (isAnswerLetter(lines[i])) {
-      answerStartIdx = i;
-      break;
+  for (let i = lines.length - 1; i >= 0 && answers.length < 50; i--) {
+    const line = lines[i].trim().replace(/[*_]/g, '');
+    
+    if (LETTERS.includes(line.toLowerCase()) && line.length === 1) {
+      answers.unshift(line.toLowerCase());
     }
   }
-
-  if (answerStartIdx === -1) {
-    return null;
-  }
-
-  const answerLines = lines.slice(answerStartIdx).filter(l => isAnswerLetter(l));
   
-  const questions = [];
-  let currentQuestion = '';
-  let currentOptions = [];
-  let inQuestion = false;
-
-  for (let i = 0; i < answerStartIdx; i++) {
-    const line = lines[i];
-    
-    if (isQuestionStart(line)) {
-      if (currentQuestion && currentOptions.length >= 2) {
-        questions.push({
-          id: questions.length + 1,
-          text: currentQuestion.trim(),
-          options: currentOptions.map(o => o.trim()).filter(o => o.length > 2)
-        });
-      }
-      currentQuestion = line.replace(/^\d+[\.\)]\s*/, '').trim();
-      currentOptions = [];
-      inQuestion = true;
-      continue;
-    }
-
-    if (inQuestion) {
-      const optionMatch = line.match(/^([абвгдежзи])\)[\s\t]+(.+)/i);
-      if (optionMatch) {
-        currentOptions.push(optionMatch[2].trim());
-      }
-    }
-  }
-
-  if (currentQuestion && currentOptions.length >= 2) {
-    questions.push({
-      id: questions.length + 1,
-      text: currentQuestion.trim(),
-      options: currentOptions.map(o => o.trim()).filter(o => o.length > 2)
-    });
-  }
-
-  if (questions.length === 0) {
-    return null;
-  }
-
-  const letterToIndex = {};
-  LETTERS.forEach((letter, idx) => {
-    letterToIndex[letter] = idx;
-  });
-
-  const questionsWithAnswers = questions.map((q, idx) => {
-    let correctIndex = 0;
-    
-    if (idx < answerLines.length) {
-      const answerLetter = answerLines[idx].toLowerCase().replace(/[^а-яё]/g, '');
-      const idxAnswer = letterToIndex[answerLetter];
-      if (idxAnswer !== undefined && idxAnswer < q.options.length) {
-        correctIndex = idxAnswer;
-      }
-    }
-
-    return { ...q, correctIndex };
-  });
-
-  console.log(`  ✅ ${questionsWithAnswers.length} вопросов`);
-  return { title: `Тема ${topicId}`, questions: questionsWithAnswers };
+  return answers;
 }
 
 async function parseQuizFromFile(filePath, topicId) {
-  let quiz = await parseQuizWithBoldAnswers(filePath, topicId);
-  if (!quiz) {
-    quiz = await parseQuizWithAnswers(filePath, topicId);
+  const text = await readText(filePath);
+  
+  let questions = parseFile(text, topicId);
+  
+  if (questions.length === 0) {
+    console.warn(`  ⚠ Нет вопросов: ${path.basename(filePath)}`);
+    return null;
   }
-  return quiz;
+  
+  // Try to find answers
+  const answers = extractAnswers(text);
+  
+  if (answers.length > 0) {
+    const letterToIdx = {};
+    LETTERS.forEach((l, i) => letterToIdx[l] = i);
+    
+    questions = questions.map((q, i) => {
+      if (q.correctIndex >= 0) return q;
+      
+      if (i < answers.length) {
+        const ans = answers[i].toLowerCase();
+        if (letterToIdx[ans] !== undefined && letterToIdx[ans] < q.options.length) {
+          return { ...q, correctIndex: letterToIdx[ans] };
+        }
+      }
+      return { ...q, correctIndex: 0 };
+    });
+  }
+  
+  // Filter valid questions
+  questions = questions.filter(q => q.options.length >= 2 && q.options.length <= 6);
+  
+  console.log(`  ✅ ${questions.length} вопросов`);
+  
+  return { title: `Тема ${topicId}`, questions };
 }
 
 async function generate() {
@@ -218,9 +232,9 @@ async function generate() {
   for (const id of sortedIds) {
     const quiz = quizzes[id];
     output += `  ${id}: { title: ${JSON.stringify(quiz.title)}, questions: [\n`;
-    for (const q of quiz.questions) {
-      output += `    { id: ${q.id}, text: ${JSON.stringify(q.text)}, options: ${JSON.stringify(q.options)}, correctIndex: ${q.correctIndex} },\n`;
-    }
+    quiz.questions.forEach((q, i) => {
+      output += `    { id: ${i+1}, text: ${JSON.stringify(q.text.substring(0, 150))}, options: ${JSON.stringify(q.options)}, correctIndex: ${q.correctIndex} },\n`;
+    });
     output += '  ]},\n';
   }
 
