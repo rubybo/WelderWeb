@@ -10,216 +10,130 @@ const projectRoot = path.resolve(__dirname, '..');
 const TESTS_DIR = path.join(projectRoot, 'public', 'Раздел контроля знаний');
 const OUTPUT_FILE = path.join(projectRoot, 'quizzes.ts');
 
-const LETTERS = ['а', 'б', 'в', 'г', 'д', 'е', 'ж', 'з'];
+const LETTERS = ['а', 'б', 'в', 'г', 'д', 'е', 'ж', 'з', 'и', 'к', 'л', 'м', 'н', 'о', 'п', 'р'];
 
 async function readLines(filePath) {
   const result = await mammoth.extractRawText({ path: filePath });
-  const text = result.value.replace(/\r/g, '');
-  return text
-    .split('\n')
-    .map((l) => l.trim())
-    .filter((l) => l.length > 0);
+  let text = result.value;
+  text = text.replace(/\r/g, '');
+  text = text.replace(/\*/g, '');
+  return text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
 }
 
-function extractNumber(str) {
-  const match = str.match(/(\d+)/);
-  return match ? parseInt(match[1], 10) : null;
+function isAnswerLetter(line) {
+  const cleaned = line.toLowerCase().replace(/[^а-яё]/g, '');
+  return cleaned.length === 1 && LETTERS.includes(cleaned);
 }
 
-function splitQuestionsAndKey(allLines, filePath) {
-  const keyPatterns = [
-    /ключ/i,
-    /ответ/i,
-    /ключ.*тест/i,
-    /тест.*ответ/i,
-    /правильн/i,
-  ];
-
-  let keyStartIndex = -1;
-  
-  for (let i = 0; i < allLines.length; i++) {
-    const line = allLines[i];
-    for (const pattern of keyPatterns) {
-      if (pattern.test(line) && line.length < 100) {
-        keyStartIndex = i;
-        break;
-      }
-    }
-    if (keyStartIndex !== -1) break;
-  }
-
-  if (keyStartIndex === -1) {
-    for (let i = 0; i < allLines.length; i++) {
-      if (/^ответ/i.test(allLines[i]) || /ответы:/i.test(allLines[i])) {
-        keyStartIndex = i;
-        break;
-      }
-    }
-  }
-
-  if (keyStartIndex === -1) {
-    console.warn(`⚠ Не найден блок с ключом ответов в файле ${path.basename(filePath)}`);
-    return { questionsPartLines: [], keyLines: [] };
-  }
-
-  const questionsPartLines = allLines.slice(0, keyStartIndex);
-  const keyLines = allLines.slice(keyStartIndex);
-  return { questionsPartLines, keyLines };
-}
-
-function parseAnswerLetters(keyLines, filePath) {
-  const answers = [];
-  
-  for (const line of keyLines) {
-    const cleanLine = line.toLowerCase().replace(/[^\w\sа-яё]/gi, ' ');
-    const tokens = cleanLine.split(/\s+/).filter(t => t.length > 0);
-    
-    for (const token of tokens) {
-      if (LETTERS.includes(token)) {
-        answers.push(token);
-      } else if (/^[а-я]$/i.test(token) && token.length === 1) {
-        const lower = token.toLowerCase();
-        if (LETTERS.includes(lower)) {
-          answers.push(lower);
-        }
-      }
-    }
-  }
-  
-  if (answers.length === 0) {
-    console.warn(`⚠ Не найдены ответы в файле ${path.basename(filePath)}`);
-  }
-  
-  return answers;
-}
-
-function isOptionLine(line) {
-  return /^[\-\u2022•\*]?\s*[абвгдежз]\s*[\).:]\s*/i.test(line) ||
-         /^[\-\u2022•\*]?\s*\([абвгдежз]\)\s*/i.test(line) ||
-         /^[\-\u2022•\*]?\s*[абвгдежз]\.\s+/i.test(line);
-}
-
-function isQuestionNumber(line) {
-  return /^\d+[\.\)]?\s/.test(line) && line.length < 30;
+function isQuestionStart(line) {
+  return /^(\d+)[\.\)]\s/.test(line) && line.length < 80;
 }
 
 async function parseQuizFromFile(filePath, topicId) {
-  const allLines = await readLines(filePath);
+  const lines = await readLines(filePath);
   
-  const { questionsPartLines, keyLines } = splitQuestionsAndKey(allLines, filePath);
-
-  if (!questionsPartLines.length || !keyLines.length) {
+  if (lines.length === 0) {
     return null;
   }
 
-  const answerLetters = parseAnswerLetters(keyLines, filePath);
-  const questions = [];
-  
-  let i = 0;
-  let currentQuestion = null;
-  let currentOptions = [];
-
-  while (i < questionsPartLines.length) {
-    const line = questionsPartLines[i];
-    const nextLine = questionsPartLines[i + 1];
-    
-    if (isOptionLine(line)) {
-      const m = line.match(/^[\-\u2022•\*]?\s*([абвгдежз])\s*[\).:]\s*(.*)$/i);
-      if (m) {
-        currentOptions.push(m[2].trim() || m[1]);
-      }
-      i++;
-      continue;
+  let answerStartIdx = -1;
+  for (let i = Math.max(0, lines.length - 60); i < lines.length; i++) {
+    if (isAnswerLetter(lines[i])) {
+      answerStartIdx = i;
+      break;
     }
+  }
+
+  if (answerStartIdx === -1) {
+    console.warn(`⚠ Нет ответов: ${path.basename(filePath)}`);
+    return null;
+  }
+
+  const answerLines = lines.slice(answerStartIdx).filter(l => isAnswerLetter(l));
+  
+  const questions = [];
+  let currentQuestion = '';
+  let currentOptions = [];
+  let inQuestion = false;
+
+  for (let i = 0; i < answerStartIdx; i++) {
+    const line = lines[i];
     
-    if (currentOptions.length > 0 && currentQuestion) {
-      if (currentOptions.length > 0) {
+    if (isQuestionStart(line)) {
+      if (currentQuestion && currentOptions.length >= 2) {
         questions.push({
           id: questions.length + 1,
-          text: currentQuestion,
-          options: currentOptions,
+          text: currentQuestion.trim(),
+          options: currentOptions.map(o => o.trim()).filter(o => o.length > 2)
         });
       }
-      currentQuestion = null;
+      currentQuestion = line.replace(/^\d+[\.\)]\s*/, '').trim();
       currentOptions = [];
+      inQuestion = true;
+      continue;
     }
-    
-    if (line.length > 10 && line.length < 500) {
-      if (!isQuestionNumber(line) || line.match(/^\d+\s+[А-ЯЁ]/)) {
-        if (currentQuestion) {
-          currentQuestion += ' ' + line;
-        } else {
-          currentQuestion = line;
+
+    if (inQuestion) {
+      if (line.match(/^[абвгдежзи]\)[\s\t]/i) || line.match(/^[абвгдежзи]\s+[а-яё]/i)) {
+        const opt = line.replace(/^[абвгдежзи]\)[\s\t]*/, '').replace(/^[абвгдежзи]\s+/, '').trim();
+        if (opt.length > 1) {
+          currentOptions.push(opt);
         }
       }
     }
-    
-    i++;
   }
 
-  if (currentOptions.length > 0 && currentQuestion) {
+  if (currentQuestion && currentOptions.length >= 2) {
     questions.push({
       id: questions.length + 1,
-      text: currentQuestion,
-      options: currentOptions,
+      text: currentQuestion.trim(),
+      options: currentOptions.map(o => o.trim()).filter(o => o.length > 2)
     });
   }
 
   if (questions.length === 0) {
-    console.warn(`⚠ Не удалось выделить вопросы из файла ${path.basename(filePath)}`);
+    console.warn(`⚠ Нет вопросов: ${path.basename(filePath)}`);
     return null;
   }
 
-  const questionsWithAnswers = questions.map((q, index) => {
-    const letter = answerLetters[index] || null;
-    let correctIndex = 0;
+  const letterToIndex = {};
+  LETTERS.forEach((letter, idx) => {
+    letterToIndex[letter] = idx;
+  });
 
-    if (letter) {
-      const idx = LETTERS.indexOf(letter);
-      if (idx >= 0 && idx < q.options.length) {
-        correctIndex = idx;
+  const questionsWithAnswers = questions.map((q, idx) => {
+    let correctIndex = 0;
+    
+    if (idx < answerLines.length) {
+      const answerLetter = answerLines[idx].toLowerCase().replace(/[^а-яё]/g, '');
+      const idxAnswer = letterToIndex[answerLetter];
+      if (idxAnswer !== undefined && idxAnswer < q.options.length) {
+        correctIndex = idxAnswer;
       }
     }
 
     return {
       ...q,
-      correctIndex,
+      correctIndex
     };
   });
 
+  console.log(`  ✅ ${questionsWithAnswers.length} вопросов`);
+
   return {
     title: `Тема ${topicId}`,
-    questions: questionsWithAnswers,
+    questions: questionsWithAnswers
   };
 }
 
 async function generate() {
-  console.log('📄 Генерация тестов из папки:', TESTS_DIR);
+  console.log('📄 Генерация тестов...');
 
   let entries;
   try {
     entries = await fs.readdir(TESTS_DIR, { withFileTypes: true });
   } catch (err) {
-    console.error('Папка с тестами не найдена:', err.message);
-    const fallback = `// Этот файл сгенерирован автоматически скриптом scripts/generate-quizzes.mjs
-// Не редактируйте его вручную: изменения будут перезаписаны.
-
-export type QuizQuestion = {
-  id: number;
-  text: string;
-  options: string[];
-  correctIndex: number;
-};
-
-export type Quiz = {
-  title: string;
-  questions: QuizQuestion[];
-};
-
-export const QUIZZES: Record<number, Quiz> = {
-};
-`;
-    await fs.writeFile(OUTPUT_FILE, fallback, 'utf8');
+    console.error('Папка не найдена:', err.message);
     return;
   }
 
@@ -231,72 +145,45 @@ export const QUIZZES: Record<number, Quiz> = {
 
     const base = entry.name.replace(/\.docx$/i, '');
     const topicId = Number.parseInt(base, 10);
-    if (!Number.isFinite(topicId)) {
-      continue;
-    }
+    if (!Number.isFinite(topicId)) continue;
 
     const fullPath = path.join(TESTS_DIR, entry.name);
-    console.log(`→ Обработка файла ${entry.name} (тема ${topicId})`);
+    console.log(`→ ${entry.name}`);
 
     try {
       const quiz = await parseQuizFromFile(fullPath, topicId);
       if (quiz && quiz.questions.length > 0) {
         quizzes[topicId] = quiz;
-        console.log(`  ✅ Найдено вопросов: ${quiz.questions.length}`);
-      } else {
-        console.log(`  ⚠ Вопросы не найдены`);
       }
     } catch (err) {
-      console.error(`  ❌ Ошибка: ${err.message}`);
+      console.error(`  ❌ ${err.message}`);
     }
   }
 
-  const sortedIds = Object.keys(quizzes)
-    .map((id) => Number.parseInt(id, 10))
-    .filter((n) => Number.isFinite(n))
-    .sort((a, b) => a - b);
+  const sortedIds = Object.keys(quizzes).map(id => parseInt(id)).sort((a, b) => a - b);
 
-  let output = '';
-  output += '// Этот файл сгенерирован автоматически скриптом scripts/generate-quizzes.mjs\n';
-  output += '// Не редактируйте его вручную: изменения будут перезаписаны.\n\n';
-  output += 'export type QuizQuestion = {\n';
-  output += '  id: number;\n';
-  output += '  text: string;\n';
-  output += '  options: string[];\n';
-  output += '  correctIndex: number;\n';
-  output += '};\n\n';
-  output += 'export type Quiz = {\n';
-  output += '  title: string;\n';
-  output += '  questions: QuizQuestion[];\n';
-  output += '};\n\n';
+  let output = '// Автогенерация\n\n';
+  output += 'export type QuizQuestion = { id: number; text: string; options: string[]; correctIndex: number; };\n';
+  output += 'export type Quiz = { title: string; questions: QuizQuestion[]; };\n';
   output += 'export const QUIZZES: Record<number, Quiz> = {\n';
 
   for (const id of sortedIds) {
     const quiz = quizzes[id];
-    output += `  ${id}: {\n`;
-    output += `    title: ${JSON.stringify(quiz.title)},\n`;
-    output += '    questions: [\n';
+    output += `  ${id}: { title: ${JSON.stringify(quiz.title)}, questions: [\n`;
     for (const q of quiz.questions) {
-      output += '      {\n';
-      output += `        id: ${q.id},\n`;
-      output += `        text: ${JSON.stringify(q.text)},\n`;
-      output += `        options: ${JSON.stringify(q.options)},\n`;
-      output += `        correctIndex: ${q.correctIndex},\n`;
-      output += '      },\n';
+      output += `    { id: ${q.id}, text: ${JSON.stringify(q.text)}, options: ${JSON.stringify(q.options)}, correctIndex: ${q.correctIndex} },\n`;
     }
-    output += '    ],\n';
-    output += '  },\n';
+    output += '  ]},\n';
   }
 
   output += '};\n';
 
   await fs.writeFile(OUTPUT_FILE, output, 'utf8');
-
-  console.log(`\n✅ Файл с тестами успешно сгенерирован: ${OUTPUT_FILE}`);
-  console.log(`📊 Всего тем с тестами: ${sortedIds.length}`);
+  console.log(`\n✅ Файл: ${OUTPUT_FILE}`);
+  console.log(`📊 Тем: ${sortedIds.length}`);
 }
 
-generate().catch((err) => {
-  console.error('Не удалось сгенерировать тесты:', err);
+generate().catch(err => {
+  console.error('Ошибка:', err);
   process.exit(1);
 });
