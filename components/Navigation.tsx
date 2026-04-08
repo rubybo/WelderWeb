@@ -10,6 +10,7 @@ import {
   FolderOpen,
   Gamepad2,
   Zap,
+  Wrench,
 } from 'lucide-react';
 
 interface NavigationProps {
@@ -22,6 +23,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentView, onNavigate }) => {
     { view: ViewState.HOME, label: 'Главная', icon: <Flame size={20} /> },
     { view: ViewState.MODULES, label: 'Видео', icon: <BookOpen size={20} /> },
     { view: ViewState.MATERIALS, label: 'УМК', icon: <FolderOpen size={20} /> },
+    { view: ViewState.PRACTICE, label: 'П/О', icon: <Wrench size={20} /> },
     { view: ViewState.TRAINING, label: 'Тренажёр', icon: <Zap size={20} /> },
     { view: ViewState.SAFETY_TRAINING, label: 'СИЗ', icon: <Shield size={20} /> },
     { view: ViewState.GAME, label: 'Игра', icon: <Gamepad2 size={20} /> },

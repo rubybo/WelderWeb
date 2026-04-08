@@ -6,6 +6,7 @@ import WeldAnalyzer from './components/WeldAnalyzer';
 import ChatAssistant from './components/ChatAssistant';
 import Safety from './components/Safety';
 import Materials from './components/Materials';
+import PracticeTraining from './components/PracticeTraining';
 import Game from './components/Game';
 import TrainingGame from './components/TrainingGame';
 import SafetyTraining from './components/SafetyTraining';
@@ -22,6 +23,8 @@ const App: React.FC = () => {
         return <Modules />;
       case ViewState.MATERIALS:
         return <Materials />;
+      case ViewState.PRACTICE:
+        return <PracticeTraining />;
       case ViewState.ANALYZER:
         return <WeldAnalyzer />;
       case ViewState.CHAT:
