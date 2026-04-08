@@ -114,9 +114,7 @@ const PracticeTraining: React.FC = () => {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div>
             <h3 className="text-xl font-bold text-slate-100">Наплавка валиков</h3>
-            <p className="text-slate-400 text-sm mt-1">
-              Переключай вкладки ниже: конспект, презентация и тест (после добавления).
-            </p>
+            
           </div>
 
           <div className="flex flex-col items-stretch md:items-end gap-2">
