@@ -244,10 +244,13 @@ const PracticeTraining: React.FC = () => {
                   type="text"
                   value={userAnswers[currentQuestion.id] ?? ''}
                   onChange={(e) =>
-                    setUserAnswers((prev) => ({
-                      ...prev,
-                      [currentQuestion.id]: e.target.value,
-                    }))
+                    {
+                      setIsChecked(false);
+                      setUserAnswers((prev) => ({
+                        ...prev,
+                        [currentQuestion.id]: e.target.value,
+                      }));
+                    }
                   }
                   placeholder="Введите продолжение..."
                   className="w-full rounded-md border border-slate-600 bg-slate-800/80 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/60"
@@ -266,7 +269,10 @@ const PracticeTraining: React.FC = () => {
               <div className="flex flex-wrap gap-2 pt-1 items-center">
                 <button
                   type="button"
-                  onClick={() => setCurrentQuestionIndex((idx) => Math.max(0, idx - 1))}
+                  onClick={() => {
+                    setIsChecked(false);
+                    setCurrentQuestionIndex((idx) => Math.max(0, idx - 1));
+                  }}
                   disabled={isFirstQuestion}
                   className="px-3 py-1.5 rounded-md border border-slate-600 text-xs text-slate-300 hover:text-white hover:border-orange-500 hover:bg-orange-500/10 disabled:opacity-40 disabled:cursor-not-allowed transition"
                 >
@@ -274,11 +280,12 @@ const PracticeTraining: React.FC = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() =>
+                  onClick={() => {
+                    setIsChecked(false);
                     setCurrentQuestionIndex((idx) =>
                       Math.min(DICTATION_QUESTIONS.length - 1, idx + 1)
-                    )
-                  }
+                    );
+                  }}
                   disabled={isLastQuestion}
                   className="px-3 py-1.5 rounded-md border border-slate-600 text-xs text-slate-300 hover:text-white hover:border-orange-500 hover:bg-orange-500/10 disabled:opacity-40 disabled:cursor-not-allowed transition"
                 >
