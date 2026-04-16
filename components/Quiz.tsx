@@ -1,26 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { CheckCircle, XCircle, RotateCcw, Award } from 'lucide-react';
 import { QUIZZES } from '../quizzes';
 
 type QuizProps = {
   topicId: number;
-};
-
-type ShuffledQuestion = {
-  originalIndex: number;
-  text: string;
-  options: string[];
-  correctIndex: number;
-  originalCorrectIndex: number;
-};
-
-const shuffleArray = <T,>(array: T[]): T[] => {
-  const shuffled = [...array];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-  return shuffled;
 };
 
 const Quiz: React.FC<QuizProps> = ({ topicId }) => {
@@ -31,41 +14,17 @@ const Quiz: React.FC<QuizProps> = ({ topicId }) => {
   const [showResult, setShowResult] = useState(false);
   const [score, setScore] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
-  const [shuffledQuestions, setShuffledQuestions] = useState<ShuffledQuestion[]>([]);
-
-  const initializeQuiz = useMemo(() => {
-    if (!quiz || !quiz.questions || quiz.questions.length === 0) {
-      return null;
-    }
-
-    const shuffled = shuffleArray(quiz.questions).map((q, idx) => {
-      const optionIndices = q.options.map((_, i) => i);
-      const shuffledIndices = shuffleArray(optionIndices);
-      
-      return {
-        originalIndex: q.id,
-        text: q.text,
-        options: shuffledIndices.map(i => q.options[i]),
-        correctIndex: shuffledIndices.indexOf(q.correctIndex),
-        originalCorrectIndex: q.correctIndex,
-      };
-    });
-
-    return shuffled;
-  }, [quiz]);
-
-  const questions = initializeQuiz || [];
 
   if (!quiz || !quiz.questions || quiz.questions.length === 0) {
     return (
-      <div className="p-4 md:p-6 text-center text-slate-400 text-sm md:text-base">
+      <div className="p-4 text-center text-slate-400">
         Тест для этой темы пока недоступен.
       </div>
     );
   }
 
-  const question = shuffledQuestions.length > 0 ? shuffledQuestions[currentQuestion] : questions[currentQuestion];
-  const totalQuestions = shuffledQuestions.length > 0 ? shuffledQuestions.length : questions.length;
+  const question = quiz.questions[currentQuestion];
+  const totalQuestions = quiz.questions.length;
 
   const handleAnswer = (answerIndex: number) => {
     if (showResult) return;
@@ -89,32 +48,12 @@ const Quiz: React.FC<QuizProps> = ({ topicId }) => {
   };
 
   const handleRestart = () => {
-    const shuffled = shuffleArray(quiz.questions).map((q) => {
-      const optionIndices = q.options.map((_, i) => i);
-      const shuffledIndices = shuffleArray(optionIndices);
-      
-      return {
-        originalIndex: q.id,
-        text: q.text,
-        options: shuffledIndices.map(i => q.options[i]),
-        correctIndex: shuffledIndices.indexOf(q.correctIndex),
-        originalCorrectIndex: q.correctIndex,
-      };
-    });
-    setShuffledQuestions(shuffled);
     setCurrentQuestion(0);
     setSelectedAnswer(null);
     setShowResult(false);
     setScore(0);
     setIsFinished(false);
   };
-
-  // Initialize on first render
-  React.useEffect(() => {
-    if (shuffledQuestions.length === 0 && questions.length > 0) {
-      handleRestart();
-    }
-  }, []);
 
   if (isFinished) {
     const percentage = Math.round((score / totalQuestions) * 100);
@@ -136,21 +75,21 @@ const Quiz: React.FC<QuizProps> = ({ topicId }) => {
     }
 
     return (
-      <div className="p-4 md:p-6 text-center space-y-4 md:space-y-6">
+      <div className="p-6 text-center space-y-6">
         <div className="flex justify-center">
-          <Award size={48} md:size={64} className={iconColor} />
+          <Award size={64} className={iconColor} />
         </div>
         <div>
-          <h3 className="text-xl md:text-2xl font-bold text-slate-100">Тест завершён!</h3>
-          <p className="text-slate-400 mt-2 text-sm md:text-base">{message}</p>
+          <h3 className="text-2xl font-bold text-slate-100">Тест завершён!</h3>
+          <p className="text-slate-400 mt-2">{message}</p>
         </div>
-        <div className="text-3xl md:text-4xl font-bold text-orange-500">
+        <div className="text-4xl font-bold text-orange-500">
           {score} / {totalQuestions}
-          <span className="text-base md:text-lg text-slate-400 ml-2">({percentage}%)</span>
+          <span className="text-lg text-slate-400 ml-2">({percentage}%)</span>
         </div>
         <button
           onClick={handleRestart}
-          className="inline-flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 rounded-lg bg-orange-600 hover:bg-orange-500 text-white font-medium transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-orange-600 hover:bg-orange-500 text-white font-medium transition-colors"
         >
           <RotateCcw size={18} />
           Пройти снова
@@ -160,8 +99,8 @@ const Quiz: React.FC<QuizProps> = ({ topicId }) => {
   }
 
   return (
-    <div className="space-y-4 md:space-y-6">
-      <div className="flex items-center justify-between text-xs md:text-sm text-slate-400">
+    <div className="space-y-6">
+      <div className="flex items-center justify-between text-sm text-slate-400">
         <span>Вопрос {currentQuestion + 1} из {totalQuestions}</span>
         <span className="text-orange-400">Баллы: {score}</span>
       </div>
@@ -173,15 +112,15 @@ const Quiz: React.FC<QuizProps> = ({ topicId }) => {
         />
       </div>
 
-      <div className="space-y-3 md:space-y-4">
-        <h3 className="text-sm md:text-lg font-medium text-slate-100">{question.text}</h3>
+      <div className="space-y-4">
+        <h3 className="text-lg font-medium text-slate-100">{question.text}</h3>
         
         <div className="space-y-2">
           {question.options.map((option, idx) => {
             const isSelected = selectedAnswer === idx;
             const isCorrect = idx === question.correctIndex;
             
-            let buttonClass = 'w-full p-3 md:p-4 text-left rounded-xl border transition-all ';
+            let buttonClass = 'w-full p-4 text-left rounded-xl border transition-all ';
             
             if (!showResult) {
               buttonClass += isSelected 
@@ -204,16 +143,16 @@ const Quiz: React.FC<QuizProps> = ({ topicId }) => {
                 disabled={showResult}
                 className={buttonClass}
               >
-                <div className="flex items-center gap-2 md:gap-3">
+                <div className="flex items-center gap-3">
                   <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg bg-slate-700 text-sm font-medium">
                     {String.fromCharCode(1072 + idx)}
                   </span>
-                  <span className="flex-1 text-sm md:text-base">{option}</span>
+                  <span className="flex-1">{option}</span>
                   {showResult && isCorrect && (
-                    <CheckCircle size={18} md:size={20} className="text-green-500 flex-shrink-0" />
+                    <CheckCircle size={20} className="text-green-500" />
                   )}
                   {showResult && isSelected && !isCorrect && (
-                    <XCircle size={18} md:size={20} className="text-red-500 flex-shrink-0" />
+                    <XCircle size={20} className="text-red-500" />
                   )}
                 </div>
               </button>

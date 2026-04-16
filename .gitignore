@@ -7,35 +7,36 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Node dependencies
-node_modules/
-
-# Build/compiled outputs (not source code)
-dist/
-dist-ssr/
-build/
+# Node modules
+node_modules
+dist
+dist-ssr
 *.local
-*.js.map
-*.tsbuildinfo
-.temp/
-.cache/
 
-# Large static assets - tracked via Git LFS, not committed directly
-"public/video welder/*.mp4"
-"public/video welder/**/"
-public/game/**
-*.zip
+# Large video files
+public/video welder/*.mp4
+public/video welder/*/
+public/video welder/*
+
+# Game assets
+public/game/*
+
+# ZIP archives
+public/*.zip
+
+# Generated files
+*.ts
+*.js
+*.mjs
 
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
-.idea/
+.idea
 .DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
-
-# Cyrillic-named private assets folder
-.public/Пазл контрол уровня знаний/
+*public/\320\240\320\260\320\267\320\264\320\265\320\273 \320\272\320\276\320\275\321\202\321\200\320\276\320\273\321\217 \320\267\320\275\320\260\320\275\320\270\320\271/
