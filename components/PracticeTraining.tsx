@@ -244,7 +244,7 @@ const PracticeTraining: React.FC = () => {
             <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-orange-600/20 text-orange-400 border border-orange-500/40">
               <Hammer size={20} />
             </span>
-            <span className="border-l-4 border-orange-500 pl-4">П/О — Практическое обучение</span>
+            <span className="border-l-4 border-orange-500 pl-4">П/О — Производственное обучение</span>
           </h2>
         </header>
 
@@ -339,7 +339,7 @@ const PracticeTraining: React.FC = () => {
           <span className="border-l-4 border-orange-500 pl-4">П/О — Практическое обучение</span>
         </h2>
         <p className="text-slate-400 ml-[3.75rem] max-w-3xl">
-          Раздел практического обучения: конспект, презентация и тест. Материалы открываются
+          Тема производственного обучения: конспект, презентация и тест. Материалы открываются
           прямо на сайте, в едином формате с остальными разделами.
         </p>
       </header>
