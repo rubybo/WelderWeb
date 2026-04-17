@@ -34,7 +34,8 @@ const Game: React.FC = () => {
         </h2>
         <p className="text-slate-400 max-w-2xl mx-auto text-sm md:text-base">
           Посмотрите обучающий ролик по игре, а затем скачайте сам тренажёр,
-          чтобы отработать навыки сварки в безопасной виртуальной среде.
+          чтобы отработать навыки сварки в безопасной виртуальной среде. <br></br>
+          <a className="text-[15px] md:text-xs text-slate-500 text-center" href="https://instruments-game.vercel.app/">Ссылка игра инструменты</a> <a className="text-[19px] md:text-xs text-slate-500 text-center" href="https://hex-game-xi.vercel.app/">Ссылка игра гексы</a>
         </p>
       </header>
 
@@ -67,6 +68,7 @@ const Game: React.FC = () => {
           {/* <p className="text-[11px] md:text-xs text-slate-500 text-center">
             Скачайте игру с Яндекс Диска и распакуйте архив для запуска.
           </p> */}
+          
         </div>
       </section>
     </div>
